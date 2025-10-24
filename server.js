@@ -7,6 +7,10 @@ const { Pool } = require('pg');
 require('dotenv').config();
 
 const MAX_ALLOWED = parseInt(process.env.MAX_ALLOWED || '20', 10);
+const STAFF_USER = (process.env.STAFF_USER || '').trim();
+const STAFF_PASS = (process.env.STAFF_PASS || '').trim();
+const STAFF_REALM = process.env.STAFF_REALM || 'Clinic Staff Access';
+
 const DEFAULT_POOL_OPTS = {
   user: process.env.DB_USER || 'clinic',
   host: process.env.DB_HOST || 'localhost',
@@ -36,8 +40,97 @@ const io = new Server(server, {
   },
 });
 
+let staffConfigWarned = false;
+
+function staffCredentialsConfigured() {
+  return Boolean(STAFF_USER && STAFF_PASS);
+}
+
+function warnIfStaffMissing() {
+  if (!staffCredentialsConfigured() && !staffConfigWarned) {
+    console.warn(
+      'Staff access is disabled: set STAFF_USER and STAFF_PASS to enable protected routes.'
+    );
+    staffConfigWarned = true;
+  }
+}
+
+function decodeBasicAuth(authHeader) {
+  if (!authHeader || typeof authHeader !== 'string') {
+    return null;
+  }
+
+  const trimmed = authHeader.trim();
+  if (!trimmed.toLowerCase().startsWith('basic ')) {
+    return null;
+  }
+
+  const base64 = trimmed.slice(6).trim();
+  if (!base64) {
+    return null;
+  }
+
+  let decoded;
+  try {
+    decoded = Buffer.from(base64, 'base64').toString('utf8');
+  } catch (error) {
+    return null;
+  }
+
+  const separatorIndex = decoded.indexOf(':');
+  if (separatorIndex === -1) {
+    return { username: decoded, password: '' };
+  }
+
+  return {
+    username: decoded.slice(0, separatorIndex),
+    password: decoded.slice(separatorIndex + 1),
+  };
+}
+
+function hasValidStaffAuth(authHeader) {
+  if (!staffCredentialsConfigured()) {
+    return false;
+  }
+
+  const credentials = decodeBasicAuth(authHeader);
+  if (!credentials) {
+    return false;
+  }
+
+  return (
+    credentials.username === STAFF_USER && credentials.password === STAFF_PASS
+  );
+}
+
+function requireStaff(req, res, next) {
+  warnIfStaffMissing();
+
+  if (!staffCredentialsConfigured()) {
+    return res.status(503).send('Staff access not configured');
+  }
+
+  if (hasValidStaffAuth(req.get('authorization'))) {
+    return next();
+  }
+
+  res.set('WWW-Authenticate', `Basic realm="${STAFF_REALM}"`);
+  return res.status(401).send('Authentication required');
+}
+
+warnIfStaffMissing();
+
 app.use(cors());
 app.use(express.json());
+
+app.get(['/staff', '/staff.html'], requireStaff, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'staff.html'));
+});
+
+app.get(['/display', '/display.html'], requireStaff, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'display.html'));
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/', (req, res) => {
@@ -243,7 +336,7 @@ app.post('/api/checkin', async (req, res) => {
   }
 });
 
-app.get('/api/patients', async (req, res) => {
+app.get('/api/patients', requireStaff, async (req, res) => {
   try {
     const { rows } = await pool.query(
       `SELECT *
@@ -259,7 +352,7 @@ app.get('/api/patients', async (req, res) => {
   }
 });
 
-app.get('/api/allowed', async (req, res) => {
+app.get('/api/allowed', requireStaff, async (req, res) => {
   try {
     const allowed = await getAllowedPatients(pool);
     res.json(allowed);
@@ -269,7 +362,7 @@ app.get('/api/allowed', async (req, res) => {
   }
 });
 
-app.post('/api/admit/:token', async (req, res) => {
+app.post('/api/admit/:token', requireStaff, async (req, res) => {
   const { token } = req.params;
   const client = await pool.connect();
 
@@ -305,7 +398,7 @@ app.post('/api/admit/:token', async (req, res) => {
   }
 });
 
-app.post('/api/remove/:token', async (req, res) => {
+app.post('/api/remove/:token', requireStaff, async (req, res) => {
   const { token } = req.params;
   const client = await pool.connect();
 
@@ -354,7 +447,7 @@ app.post('/api/remove/:token', async (req, res) => {
   }
 });
 
-app.post('/api/next', async (req, res) => {
+app.post('/api/next', requireStaff, async (req, res) => {
   const { count, num } = req.body || {};
   const requested = Number.isInteger(count)
     ? count
