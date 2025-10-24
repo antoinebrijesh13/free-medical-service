@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clinic Staff Console</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Courier New', monospace;
+      background: #000;
+      color: #fff;
+      min-height: 100vh;
+      padding: 40px 20px 80px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .console {
+      width: 100%;
+      max-width: 1100px;
+      border: 2px solid #fff;
+      background: #000;
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+    }
+
+    .console__header {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    h1 {
+      font-size: 26px;
+      font-weight: normal;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      text-align: center;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #fff;
+    }
+
+    .summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+    }
+
+    .summary__item {
+      border: 1px solid #fff;
+      padding: 16px 24px;
+      text-align: center;
+      min-width: 140px;
+      letter-spacing: 2px;
+    }
+
+    .summary__label {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: #999;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .summary__value {
+      font-size: 24px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #fff;
+      padding: 20px;
+    }
+
+    .actions label {
+      font-size: 12px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    input[type="number"] {
+      background: #000;
+      border: 1px solid #fff;
+      color: #fff;
+      font-family: 'Courier New', monospace;
+      font-size: 16px;
+      padding: 10px 14px;
+      width: 140px;
+    }
+
+    button {
+      appearance: none;
+      background: #fff;
+      color: #000;
+      border: none;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 12px 24px;
+      cursor: pointer;
+      transition: all 0.2s;
+      min-width: 160px;
+    }
+
+    button:hover:not(:disabled) {
+      background: #000;
+      color: #fff;
+      border: 1px solid #fff;
+    }
+
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .table-wrapper {
+      border: 1px solid #fff;
+      overflow: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 700px;
+    }
+
+    thead th {
+      font-weight: normal;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      font-size: 12px;
+      text-align: left;
+      padding: 16px 20px;
+      border-bottom: 1px solid #fff;
+    }
+
+    tbody td {
+      padding: 14px 20px;
+      border-bottom: 1px solid #222;
+      vertical-align: middle;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .status {
+      padding: 6px 12px;
+      border: 1px solid #fff;
+      display: inline-block;
+      letter-spacing: 2px;
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    .status--allowed {
+      background: #0f0;
+      color: #000;
+    }
+
+    .status--waiting {
+      background: transparent;
+      color: #fff;
+    }
+
+    .actions-cell {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .actions-cell button {
+      padding: 10px 18px;
+      min-width: auto;
+    }
+
+    .actions-cell button.remove {
+      background: transparent;
+      color: #fff;
+      border: 1px solid #fff;
+    }
+
+    .actions-cell button.remove:hover:not(:disabled) {
+      background: #fff;
+      color: #000;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      letter-spacing: 2px;
+      color: #777;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 20px 10px 60px;
+      }
+
+      .console {
+        padding: 30px 20px;
+      }
+
+      table {
+        min-width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="console">
+    <div class="console__header">
+      <h1>Clinic Staff Console</h1>
+
+      <div class="summary" id="summary">
+        <div class="summary__item">
+          <span class="summary__label">Total Patients</span>
+          <span class="summary__value" id="totalCount">0</span>
+        </div>
+        <div class="summary__item">
+          <span class="summary__label">Waiting</span>
+          <span class="summary__value" id="waitingCount">0</span>
+        </div>
+        <div class="summary__item">
+          <span class="summary__label">Admitted</span>
+          <span class="summary__value" id="allowedCount">0</span>
+        </div>
+      </div>
+
+      <div class="actions">
+        <label for="bulkCount">Admit Next</label>
+        <input type="number" id="bulkCount" min="1" value="5">
+        <button id="bulkAdmitBtn">Execute</button>
+        <button id="refreshBtn">Refresh</button>
+      </div>
+    </div>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 110px;">Token</th>
+            <th style="width: 220px;">Name</th>
+            <th>Details</th>
+            <th style="width: 140px;">Status</th>
+            <th style="width: 240px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="patientsBody">
+          <tr class="empty-state">
+            <td colspan="5">Awaiting first patient...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.origin;
+    const patientsBody = document.getElementById('patientsBody');
+    const bulkInput = document.getElementById('bulkCount');
+    const bulkBtn = document.getElementById('bulkAdmitBtn');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const totalCountEl = document.getElementById('totalCount');
+    const waitingCountEl = document.getElementById('waitingCount');
+    const allowedCountEl = document.getElementById('allowedCount');
+
+    const socket = io();
+    let patients = [];
+    let loading = false;
+
+    function setLoading(state) {
+      loading = state;
+      bulkBtn.disabled = state;
+      refreshBtn.disabled = state;
+      const actionButtons = patientsBody.querySelectorAll('button');
+      actionButtons.forEach(btn => {
+        if (btn.dataset.lockable === 'true') {
+          btn.disabled = state;
+        }
+      });
+    }
+
+    function upsertPatient(patient) {
+      const existingIndex = patients.findIndex(p => p.token === patient.token);
+      if (existingIndex >= 0) {
+        patients[existingIndex] = { ...patients[existingIndex], ...patient };
+      } else {
+        patients.push(patient);
+      }
+    }
+
+    function removePatient(token) {
+      patients = patients.filter(p => p.token !== token);
+    }
+
+    function comparePatients(a, b) {
+      return a.id - b.id;
+    }
+
+    function getStatusClass(status) {
+      return status === 'allowed' ? 'status status--allowed' : 'status status--waiting';
+    }
+
+    function renderTable() {
+      patients.sort(comparePatients);
+
+      const waitingCount = patients.filter(p => p.status === 'waiting').length;
+      const allowedCount = patients.filter(p => p.status === 'allowed').length;
+
+      totalCountEl.textContent = patients.length;
+      waitingCountEl.textContent = waitingCount;
+      allowedCountEl.textContent = allowedCount;
+
+      if (!patients.length) {
+        patientsBody.innerHTML = `
+          <tr class="empty-state">
+            <td colspan="5">Queue is currently empty.</td>
+          </tr>
+        `;
+        return;
+      }
+
+      patientsBody.innerHTML = patients.map(patient => {
+        const { token, name, status, details, country, age } = patient;
+        const canAdmit = status === 'waiting';
+        const normalizedDetails = details || '—';
+
+        return `
+          <tr>
+            <td>${token}</td>
+            <td>
+              <div>${name}</div>
+              <div style="font-size: 12px; color: #999; letter-spacing: 1px; margin-top: 6px;">
+                ${country || 'Unknown'} · ${Number.isFinite(age) ? age : '?'} yrs
+              </div>
+            </td>
+            <td style="font-size: 13px; line-height: 1.5;">
+              ${normalizedDetails}
+            </td>
+            <td>
+              <span class="${getStatusClass(status)}">${status}</span>
+            </td>
+            <td class="actions-cell">
+              <button
+                class="admit"
+                data-token="${token}"
+                data-action="admit"
+                data-lockable="true"
+                ${canAdmit ? '' : 'disabled'}
+              >
+                Admit
+              </button>
+              <button
+                class="remove"
+                data-token="${token}"
+                data-action="remove"
+                data-lockable="true"
+              >
+                Remove
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function handleSocketEvents() {
+      socket.on('new-patient', (patient) => {
+        upsertPatient(patient);
+        renderTable();
+      });
+
+      socket.on('allowed-update', (allowedList) => {
+        const allowedTokens = new Set((allowedList || []).map(p => p.token));
+        allowedList.forEach(p => upsertPatient(p));
+
+        patients = patients.map(patient => {
+          if (allowedTokens.has(patient.token)) {
+            return { ...patient, status: 'allowed' };
+          }
+          if (patient.status === 'allowed') {
+            return { ...patient, status: 'waiting' };
+          }
+          return patient;
+        });
+
+        renderTable();
+      });
+
+      socket.on('patient-finished', (token) => {
+        removePatient(token);
+        renderTable();
+      });
+    }
+
+    async function fetchPatients() {
+      setLoading(true);
+      try {
+        const res = await fetch(`${API_BASE}/api/patients`);
+        if (!res.ok) throw new Error('Failed to fetch patients');
+        const data = await res.json();
+        patients = data;
+        renderTable();
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function admitPatient(token) {
+      setLoading(true);
+      try {
+        const res = await fetch(`${API_BASE}/api/admit/${token}`, { method: 'POST' });
+        if (!res.ok) throw new Error('Failed to admit patient');
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function removePatientRequest(token) {
+      setLoading(true);
+      try {
+        const res = await fetch(`${API_BASE}/api/remove/${token}`, { method: 'POST' });
+        if (!res.ok) throw new Error('Failed to remove patient');
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function admitNextBatch() {
+      const value = parseInt(bulkInput.value, 10);
+      if (!Number.isFinite(value) || value <= 0) {
+        bulkInput.focus();
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const res = await fetch(`${API_BASE}/api/next`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ count: value }),
+        });
+        if (!res.ok) throw new Error('Failed to admit next patients');
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    patientsBody.addEventListener('click', (event) => {
+      const button = event.target.closest('button[data-action]');
+      if (!button || button.disabled || loading) return;
+
+      const { action, token } = button.dataset;
+
+      if (action === 'admit') {
+        admitPatient(token);
+      }
+
+      if (action === 'remove') {
+        removePatientRequest(token);
+      }
+    });
+
+    bulkBtn.addEventListener('click', () => {
+      if (!loading) {
+        admitNextBatch();
+      }
+    });
+
+    refreshBtn.addEventListener('click', () => {
+      if (!loading) {
+        fetchPatients();
+      }
+    });
+
+    handleSocketEvents();
+    fetchPatients();
+  </script>
+</body>
+</html>

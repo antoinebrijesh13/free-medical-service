@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Free Medical Services & Checkup for International Students</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Courier New', monospace;
+      background: #000;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 520px;
+      width: 100%;
+      border: 2px solid #fff;
+      padding: 40px;
+      background: #000;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: normal;
+      margin-bottom: 30px;
+      letter-spacing: 3px;
+      text-align: center;
+      text-transform: uppercase;
+      border-bottom: 1px solid #fff;
+      padding-bottom: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 25px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 12px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      background: #000;
+      border: 1px solid #fff;
+      color: #fff;
+      padding: 12px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
+
+    input:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #fff;
+      box-shadow: inset 0 0 0 1px #fff;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .age-display {
+      margin-top: 5px;
+      font-size: 12px;
+      color: #999;
+      letter-spacing: 1px;
+    }
+
+    button[type="submit"] {
+      width: 100%;
+      background: #fff;
+      color: #000;
+      border: none;
+      padding: 15px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    button[type="submit"]:hover {
+      background: #000;
+      color: #fff;
+      border: 1px solid #fff;
+    }
+
+    button[type="submit"]:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .error {
+      color: #ff3b3b;
+      font-size: 12px;
+      margin-top: 8px;
+      display: none;
+    }
+
+    .error.show {
+      display: block;
+    }
+
+    .success-message {
+      position: fixed;
+      inset: 0;
+      background: #000;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      gap: 12px;
+      text-align: center;
+      padding: 20px;
+      z-index: 1000;
+    }
+
+    .success-message.show {
+      display: flex;
+    }
+
+    .token-display {
+      font-size: 72px;
+      font-weight: bold;
+      letter-spacing: 10px;
+      margin-bottom: 10px;
+      border: 3px solid #fff;
+      padding: 30px 60px;
+    }
+
+    .success-text {
+      font-size: 18px;
+      letter-spacing: 2px;
+    }
+
+    .success-text.subtext {
+      font-size: 14px;
+      color: #bbb;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 32px 24px;
+      }
+
+      .token-display {
+        font-size: 56px;
+        padding: 24px 40px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Free Medical Services & Checkup for International Students</h1>
+    <form id="checkinForm">
+      <div class="form-group">
+        <label for="name">Full Name *</label>
+        <input type="text" id="name" name="name" required autocomplete="name" placeholder="Enter your full name">
+      </div>
+
+      <div class="form-group">
+        <label for="birthday">Date of Birth *</label>
+        <input type="date" id="birthday" name="birthday" required>
+        <div class="age-display" id="ageDisplay"></div>
+      </div>
+
+      <div class="form-group">
+        <label for="country">Country *</label>
+        <input
+          type="text"
+          id="country"
+          name="country"
+          list="countryList"
+          autocomplete="off"
+          required
+          placeholder="Start typing or choose your country"
+        >
+        <datalist id="countryList"></datalist>
+      </div>
+
+      <div class="form-group">
+        <label for="details">Reason for Visit / Symptoms (optional)</label>
+        <textarea
+          id="details"
+          name="details"
+          placeholder="Describe your symptoms or reason (optional)"
+        ></textarea>
+      </div>
+
+      <button type="submit" id="submitBtn">Check In</button>
+      <div class="error" id="errorMsg"></div>
+    </form>
+  </div>
+
+  <div class="success-message" id="successMessage">
+    <div class="token-display" id="tokenDisplay">---</div>
+    <div class="success-text">Your Token Number</div>
+    <div class="success-text subtext">Please wait for your number to be called.</div>
+  </div>
+
+  <script>
+    const API_URL = window.location.origin;
+
+    const countries = [
+      'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua and Barbuda',
+      'Argentina', 'Armenia', 'Australia', 'Austria', 'Azerbaijan', 'Bahamas', 'Bahrain',
+      'Bangladesh', 'Barbados', 'Belarus', 'Belgium', 'Belize', 'Benin', 'Bhutan', 'Bolivia',
+      'Bosnia and Herzegovina', 'Botswana', 'Brazil', 'Brunei', 'Bulgaria', 'Burkina Faso',
+      'Burundi', 'Cabo Verde', 'Cambodia', 'Cameroon', 'Canada', 'Central African Republic',
+      'Chad', 'Chile', 'China', 'Colombia', 'Comoros', 'Congo', 'Cote d Ivoire', 'Costa Rica', 'Croatia',
+      'Cuba', 'Cyprus', 'Czech Republic', 'Democratic Republic of the Congo', 'Denmark',
+      'Djibouti', 'Dominica', 'Dominican Republic', 'Ecuador', 'Egypt', 'El Salvador',
+      'Equatorial Guinea', 'Eritrea', 'Estonia', 'Eswatini', 'Ethiopia', 'Fiji', 'Finland',
+      'France', 'Gabon', 'Gambia', 'Georgia', 'Germany', 'Ghana', 'Greece', 'Grenada',
+      'Guatemala', 'Guinea', 'Guinea-Bissau', 'Guyana', 'Haiti', 'Honduras', 'Hong Kong', 'Hungary',
+      'Iceland', 'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland', 'Israel', 'Italy', 'Jamaica',
+      'Japan', 'Jordan', 'Kazakhstan', 'Kenya', 'Kiribati', 'Kosovo', 'Kuwait', 'Kyrgyzstan', 'Laos',
+      'Latvia', 'Lebanon', 'Lesotho', 'Liberia', 'Libya', 'Liechtenstein', 'Lithuania',
+      'Luxembourg', 'Macau', 'Madagascar', 'Malawi', 'Malaysia', 'Maldives', 'Mali', 'Malta',
+      'Marshall Islands', 'Mauritania', 'Mauritius', 'Mexico', 'Micronesia', 'Moldova',
+      'Monaco', 'Mongolia', 'Montenegro', 'Morocco', 'Mozambique', 'Myanmar', 'Namibia',
+      'Nauru', 'Nepal', 'Netherlands', 'New Zealand', 'Nicaragua', 'Niger', 'Nigeria',
+      'North Korea', 'North Macedonia', 'Norway', 'Oman', 'Pakistan', 'Palau', 'Palestine', 'Panama',
+      'Papua New Guinea', 'Paraguay', 'Peru', 'Philippines', 'Poland', 'Portugal', 'Qatar',
+      'Romania', 'Russia', 'Rwanda', 'Saint Kitts and Nevis', 'Saint Lucia',
+      'Saint Vincent and the Grenadines', 'Samoa', 'San Marino', 'Sao Tome and Principe',
+      'Saudi Arabia', 'Senegal', 'Serbia', 'Seychelles', 'Sierra Leone', 'Singapore',
+      'Slovakia', 'Slovenia', 'Solomon Islands', 'Somalia', 'South Africa', 'South Korea',
+      'South Sudan', 'Spain', 'Sri Lanka', 'Sudan', 'Suriname', 'Sweden', 'Switzerland',
+      'Syria', 'Taiwan', 'Tajikistan', 'Tanzania', 'Thailand', 'Timor-Leste', 'Togo',
+      'Tonga', 'Trinidad and Tobago', 'Tunisia', 'Turkey', 'Turkmenistan', 'Tuvalu', 'Uganda',
+      'Ukraine', 'United Arab Emirates', 'United Kingdom', 'United States', 'Uruguay',
+      'Uzbekistan', 'Vanuatu', 'Vatican City', 'Venezuela', 'Vietnam', 'Western Sahara', 'Yemen', 'Zambia',
+      'Zimbabwe'
+    ];
+
+    const form = document.getElementById('checkinForm');
+    const birthdayInput = document.getElementById('birthday');
+    const ageDisplay = document.getElementById('ageDisplay');
+    const countryInput = document.getElementById('country');
+    const submitBtn = document.getElementById('submitBtn');
+    const errorMsg = document.getElementById('errorMsg');
+    const successMessage = document.getElementById('successMessage');
+    const tokenDisplay = document.getElementById('tokenDisplay');
+    const detailsInput = document.getElementById('details');
+    const countryListEl = document.getElementById('countryList');
+
+    countries.forEach((country) => {
+      const option = document.createElement('option');
+      option.value = country;
+      countryListEl.appendChild(option);
+    });
+
+    function calculateAge(dateValue) {
+      const birthday = new Date(dateValue);
+      if (Number.isNaN(birthday.getTime())) {
+        return null;
+      }
+      const today = new Date();
+      let age = today.getFullYear() - birthday.getFullYear();
+      const monthDiff = today.getMonth() - birthday.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthday.getDate())) {
+        age--;
+      }
+      return age;
+    }
+
+    birthdayInput.addEventListener('change', (event) => {
+      const age = calculateAge(event.target.value);
+      if (age !== null && age >= 0 && age < 150) {
+        ageDisplay.textContent = `Age: ${age} years old`;
+        ageDisplay.style.color = '#fff';
+      } else {
+        ageDisplay.textContent = 'Invalid date';
+        ageDisplay.style.color = '#ff3b3b';
+      }
+    });
+
+    function normalizeCountry(value) {
+      const trimmed = value.trim();
+      if (!trimmed) {
+        return '';
+      }
+      if (trimmed.length <= 3 && /^[a-zA-Z]+$/.test(trimmed)) {
+        return trimmed.toUpperCase();
+      }
+      return trimmed
+        .split(/\s+/)
+        .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+        .join(' ');
+    }
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Checking In...';
+      errorMsg.classList.remove('show');
+
+      const age = calculateAge(birthdayInput.value);
+      if (age === null || age < 0 || age >= 150) {
+        errorMsg.textContent = 'Please enter a valid birth date.';
+        errorMsg.classList.add('show');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Check In';
+        return;
+      }
+
+      const normalizedCountry = normalizeCountry(countryInput.value);
+      countryInput.value = normalizedCountry;
+
+      if (!normalizedCountry) {
+        errorMsg.textContent = 'Please choose your country.';
+        errorMsg.classList.add('show');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Check In';
+        return;
+      }
+
+      const payload = {
+        name: document.getElementById('name').value.trim(),
+        age,
+        country: normalizedCountry,
+        details: detailsInput.value.trim(),
+      };
+
+      try {
+        const response = await fetch(`${API_URL}/api/checkin`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          tokenDisplay.textContent = data.token || '---';
+          successMessage.classList.add('show');
+        } else {
+          throw new Error(data.error || 'Check-in failed');
+        }
+      } catch (error) {
+        console.error('Check-in error:', error);
+        errorMsg.textContent = 'Check-in failed. Please try again.';
+        errorMsg.classList.add('show');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Check In';
+      }
+    });
+  </script>
+</body>
+</html>
