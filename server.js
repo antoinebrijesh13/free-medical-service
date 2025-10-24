@@ -123,6 +123,45 @@ warnIfStaffMissing();
 app.use(cors());
 app.use(express.json());
 
+async function ensureTokensTable() {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS tokens (
+        id SERIAL PRIMARY KEY,
+        token TEXT NOT NULL UNIQUE,
+        name TEXT NOT NULL,
+        age INT NOT NULL,
+        country TEXT NOT NULL,
+        details TEXT,
+        status TEXT NOT NULL DEFAULT 'waiting',
+        admitted_at TIMESTAMP,
+        finished_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS tokens_status_idx ON tokens(status)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS tokens_token_idx ON tokens(token)
+    `);
+
+    await client.query('COMMIT');
+    console.log('Tokens table ensured');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Failed to ensure tokens table:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 app.get(['/staff', '/staff.html'], requireStaff, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'staff.html'));
 });
@@ -152,6 +191,11 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log('Client disconnected:', socket.id);
   });
+});
+
+ensureTokensTable().catch((error) => {
+  console.error('Schema initialization error:', error);
+  process.exit(1);
 });
 
 function formatToken(id) {
