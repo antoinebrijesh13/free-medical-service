@@ -31,6 +31,8 @@ const pool = new Pool(
     : DEFAULT_POOL_OPTS
 );
 
+const ALLOWED_SEX_VALUES = new Set(['Female', 'Male', 'Other', 'Prefer not to say']);
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -149,6 +151,12 @@ async function ensureTokensTable() {
 
     await client.query(`
       CREATE INDEX IF NOT EXISTS tokens_token_idx ON tokens(token)
+    `);
+
+    await client.query(`
+      ALTER TABLE tokens
+      ADD COLUMN IF NOT EXISTS sex TEXT,
+      ADD COLUMN IF NOT EXISTS phone TEXT
     `);
 
     await client.query('COMMIT');
@@ -326,7 +334,7 @@ async function nextIdentity(client) {
 // ============ API ENDPOINTS ============
 
 app.post('/api/checkin', async (req, res) => {
-  const { name, age, country, details } = req.body || {};
+  const { name, age, country, details, sex, phone } = req.body || {};
 
   if (!name || !country) {
     return res.status(400).json({ error: 'Missing required fields' });
@@ -335,6 +343,20 @@ app.post('/api/checkin', async (req, res) => {
   const ageNumber = Number(age);
   if (!Number.isFinite(ageNumber) || ageNumber < 0) {
     return res.status(400).json({ error: 'Invalid age' });
+  }
+
+  const normalizedSex = (sex || '').trim();
+  if (!ALLOWED_SEX_VALUES.has(normalizedSex)) {
+    return res.status(400).json({ error: 'Invalid sex selection' });
+  }
+
+  const rawPhone = (phone || '').trim();
+  const digitsOnly = rawPhone.replace(/\D/g, '');
+  if (!rawPhone) {
+    return res.status(400).json({ error: 'Phone number is required' });
+  }
+  if (digitsOnly.length < 7 || digitsOnly.length > 15) {
+    return res.status(400).json({ error: 'Invalid phone number' });
   }
 
   const client = await pool.connect();
@@ -346,8 +368,8 @@ app.post('/api/checkin', async (req, res) => {
     const token = formatToken(nextId);
 
     const insertRes = await client.query(
-      `INSERT INTO tokens (id, token, name, age, country, details, status)
-       VALUES ($1, $2, $3, $4, $5, $6, 'waiting')
+      `INSERT INTO tokens (id, token, name, age, country, details, status, sex, phone)
+       VALUES ($1, $2, $3, $4, $5, $6, 'waiting', $7, $8)
        RETURNING *`,
       [
         nextId,
@@ -356,6 +378,8 @@ app.post('/api/checkin', async (req, res) => {
         ageNumber,
         country.trim(),
         (details || '').trim() || null,
+        normalizedSex,
+        rawPhone,
       ]
     );
 

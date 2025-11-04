@@ -288,6 +288,15 @@
     let patients = [];
     let loading = false;
 
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
     function setLoading(state) {
       loading = state;
       bulkBtn.disabled = state;
@@ -341,21 +350,33 @@
       }
 
       patientsBody.innerHTML = patients.map(patient => {
-        const { token, name, status, details, country, age } = patient;
+        const { token, name, status, details, country, age, sex, phone } = patient;
         const canAdmit = status === 'waiting';
-        const normalizedDetails = details || '—';
+        const displayDetails = details
+          ? escapeHtml(details).replace(/\r?\n/g, '<br>')
+          : '—';
+        const displayCountry = country ? escapeHtml(country) : 'Unknown';
+        const displayAge = Number.isFinite(age) ? `${age}` : '?';
+        const displaySex = sex ? escapeHtml(sex) : '—';
+        const displayPhone = phone ? escapeHtml(phone) : '—';
 
         return `
           <tr>
-            <td>${token}</td>
+            <td>${escapeHtml(token)}</td>
             <td>
-              <div>${name}</div>
+              <div>${escapeHtml(name)}</div>
               <div style="font-size: 12px; color: #999; letter-spacing: 1px; margin-top: 6px;">
-                ${country || 'Unknown'} · ${Number.isFinite(age) ? age : '?'} yrs
+                ${displayCountry} · ${displayAge} yrs
+              </div>
+              <div style="font-size: 12px; color: #999; letter-spacing: 1px; margin-top: 4px;">
+                Sex: ${displaySex}
+              </div>
+              <div style="font-size: 12px; color: #999; letter-spacing: 1px; margin-top: 4px;">
+                Phone: ${displayPhone}
               </div>
             </td>
             <td style="font-size: 13px; line-height: 1.5;">
-              ${normalizedDetails}
+              ${displayDetails}
             </td>
             <td>
               <span class="${getStatusClass(status)}">${status}</span>
