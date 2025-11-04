@@ -366,6 +366,9 @@
     </div>
     <div class="success-text">Check-in Successful!</div>
     <div class="success-text subtext">Please wait in the waiting room</div>
+    <div class="success-text subtext" style="font-size: 15px;">
+      Please take a screenshot of your token.
+    </div>
   </div>
 
   <script>
@@ -424,6 +427,13 @@
       countryListEl.appendChild(option);
     });
 
+    function formatIsoDate(year, month, day) {
+      const yyyy = String(year).padStart(4, '0');
+      const mm = String(month).padStart(2, '0');
+      const dd = String(day).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
     function parseDateInput(value) {
       const trimmed = (value || '').trim();
       if (!trimmed) {
@@ -435,6 +445,22 @@
         const year = Number(isoMatch[1]);
         const month = Number(isoMatch[2]) - 1;
         const day = Number(isoMatch[3]);
+        const candidate = new Date(year, month, day);
+        if (
+          candidate.getFullYear() === year &&
+          candidate.getMonth() === month &&
+          candidate.getDate() === day
+        ) {
+          return candidate;
+        }
+        return null;
+      }
+
+      const digitsMatch = trimmed.match(/^(\d{4})(\d{2})(\d{2})$/);
+      if (digitsMatch) {
+        const year = Number(digitsMatch[1]);
+        const month = Number(digitsMatch[2]) - 1;
+        const day = Number(digitsMatch[3]);
         const candidate = new Date(year, month, day);
         if (
           candidate.getFullYear() === year &&
@@ -469,7 +495,24 @@
 
     function updateAgePreview(value) {
       const trimmed = (value || '').trim();
-      const age = calculateAge(trimmed);
+      let normalizedValue = trimmed;
+
+      const digitsMatch = trimmed.match(/^(\d{4})(\d{2})(\d{2})$/);
+      if (digitsMatch) {
+        const year = Number(digitsMatch[1]);
+        const month = Number(digitsMatch[2]);
+        const day = Number(digitsMatch[3]);
+        const candidate = parseDateInput(trimmed);
+        if (candidate) {
+          const formatted = formatIsoDate(year, month, day);
+          normalizedValue = formatted;
+          if (birthdayInput.value !== formatted) {
+            birthdayInput.value = formatted;
+          }
+        }
+      }
+
+      const age = calculateAge(normalizedValue);
       if (!trimmed) {
         ageDisplay.textContent = '';
         ageDisplay.classList.remove('show');
@@ -516,9 +559,10 @@
       submitBtn.textContent = 'Checking In...';
       errorMsg.classList.remove('show');
 
-      const birthdayRaw = birthdayInput.value.trim();
-      const age = calculateAge(birthdayRaw);
+      const birthdayRaw = birthdayInput.value;
       updateAgePreview(birthdayRaw);
+      const normalizedBirthday = birthdayInput.value.trim();
+      const age = calculateAge(normalizedBirthday);
       if (age === null || age < 0 || age >= 150) {
         errorMsg.textContent = 'Please enter a valid birth date.';
         errorMsg.classList.add('show');
