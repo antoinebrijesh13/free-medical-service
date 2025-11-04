@@ -7,7 +7,7 @@
   <script src="/socket.io/socket.io.js"></script>
   <style>
     :root {
-      color-scheme: dark;
+      color-scheme: light;
     }
 
     * {
@@ -17,9 +17,9 @@
     }
 
     body {
-      font-family: 'Courier New', monospace;
-      background: #000;
-      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: #f8fafc;
+      color: #1f2933;
       min-height: 100vh;
       padding: 40px 20px 80px;
       display: flex;
@@ -29,12 +29,14 @@
     .console {
       width: 100%;
       max-width: 1100px;
-      border: 2px solid #fff;
-      background: #000;
+      border: 1px solid #e2e8f0;
+      background: #ffffff;
       padding: 40px;
       display: flex;
       flex-direction: column;
       gap: 30px;
+      border-radius: 24px;
+      box-shadow: 0 24px 64px -35px rgba(15, 23, 42, 0.35);
     }
 
     .console__header {
@@ -50,7 +52,8 @@
       text-transform: uppercase;
       text-align: center;
       padding-bottom: 20px;
-      border-bottom: 1px solid #fff;
+      border-bottom: 1px solid #d9e2ec;
+      color: #102a43;
     }
 
     .summary {
@@ -61,23 +64,26 @@
     }
 
     .summary__item {
-      border: 1px solid #fff;
+      border: 1px solid #e2e8f0;
       padding: 16px 24px;
       text-align: center;
       min-width: 140px;
       letter-spacing: 2px;
+      background: #f8fafc;
+      border-radius: 16px;
     }
 
     .summary__label {
       font-size: 11px;
       text-transform: uppercase;
-      color: #999;
+      color: #7b8794;
       margin-bottom: 8px;
       display: block;
     }
 
     .summary__value {
       font-size: 24px;
+      color: #1f2933;
     }
 
     .actions {
@@ -86,54 +92,65 @@
       gap: 16px;
       align-items: center;
       justify-content: center;
-      border: 1px solid #fff;
-      padding: 20px;
+      border: 1px solid #e2e8f0;
+      padding: 24px;
+      background: #f8fafc;
+      border-radius: 18px;
     }
 
     .actions label {
       font-size: 12px;
       letter-spacing: 2px;
       text-transform: uppercase;
+      color: #7b8794;
     }
 
     input[type="number"] {
-      background: #000;
-      border: 1px solid #fff;
-      color: #fff;
-      font-family: 'Courier New', monospace;
+      background: #ffffff;
+      border: 1px solid #cbd2d9;
+      color: #1f2933;
       font-size: 16px;
       padding: 10px 14px;
       width: 140px;
+      transition: border 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    input[type="number"]:focus {
+      outline: none;
+      border-color: #2d6cdf;
+      box-shadow: 0 0 0 3px rgba(45, 108, 223, 0.15);
     }
 
     button {
       appearance: none;
-      background: #fff;
-      color: #000;
+      background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
+      color: #ffffff;
       border: none;
-      font-family: 'Courier New', monospace;
       font-size: 14px;
       letter-spacing: 2px;
       text-transform: uppercase;
       padding: 12px 24px;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
       min-width: 160px;
+      border-radius: 14px;
+      box-shadow: 0 12px 30px -16px rgba(99, 102, 241, 0.45);
     }
 
     button:hover:not(:disabled) {
-      background: #000;
-      color: #fff;
-      border: 1px solid #fff;
+      transform: translateY(-1px);
+      box-shadow: 0 16px 28px -18px rgba(45, 108, 223, 0.7);
     }
 
     button:disabled {
       opacity: 0.4;
       cursor: not-allowed;
+      box-shadow: none;
     }
 
     .table-wrapper {
-      border: 1px solid #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
       overflow: auto;
     }
 
@@ -141,6 +158,8 @@
       width: 100%;
       border-collapse: collapse;
       min-width: 700px;
+      background: #ffffff;
+      border-radius: 18px;
     }
 
     thead th {
@@ -150,13 +169,17 @@
       font-size: 12px;
       text-align: left;
       padding: 16px 20px;
-      border-bottom: 1px solid #fff;
+      border-bottom: 1px solid #edf2f7;
+      color: #334e68;
+      background: #e4ebf5;
     }
 
     tbody td {
       padding: 14px 20px;
-      border-bottom: 1px solid #222;
+      border-bottom: 1px solid #edf2f7;
       vertical-align: middle;
+      color: #1f2933;
+      background: #ffffff;
     }
 
     tbody tr:last-child td {
@@ -165,21 +188,25 @@
 
     .status {
       padding: 6px 12px;
-      border: 1px solid #fff;
+      border: 1px solid #cbd2d9;
       display: inline-block;
       letter-spacing: 2px;
       font-size: 11px;
       text-transform: uppercase;
+      color: #334e68;
+      background: #f5f7fa;
+      border-radius: 999px;
     }
 
     .status--allowed {
-      background: #0f0;
-      color: #000;
+      background: #3ecf8e;
+      color: #0f172a;
+      border-color: #3ecf8e;
     }
 
     .status--waiting {
-      background: transparent;
-      color: #fff;
+      background: #f5f7fa;
+      color: #334e68;
     }
 
     .actions-cell {
@@ -191,24 +218,36 @@
     .actions-cell button {
       padding: 10px 18px;
       min-width: auto;
+      background: #ffffff;
+      color: #1f2933;
+      border: 1px solid #d1d5db;
+      box-shadow: none;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+      border-radius: 12px;
+    }
+
+    .actions-cell button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 24px -18px rgba(16, 42, 67, 0.35);
     }
 
     .actions-cell button.remove {
-      background: transparent;
-      color: #fff;
-      border: 1px solid #fff;
+      background: #ffffff;
+      color: #d64545;
+      border: 1px solid #fca5a5;
     }
 
     .actions-cell button.remove:hover:not(:disabled) {
-      background: #fff;
-      color: #000;
+      background: #d64545;
+      color: #ffffff;
+      box-shadow: 0 12px 24px -18px rgba(214, 69, 69, 0.4);
     }
 
     .empty-state {
       text-align: center;
       padding: 40px;
       letter-spacing: 2px;
-      color: #777;
+      color: #7b8794;
     }
 
     @media (max-width: 768px) {
@@ -365,13 +404,13 @@
             <td>${escapeHtml(token)}</td>
             <td>
               <div>${escapeHtml(name)}</div>
-              <div style="font-size: 12px; color: #999; letter-spacing: 1px; margin-top: 6px;">
+              <div style="font-size: 12px; color: #7b8794; letter-spacing: 1px; margin-top: 6px;">
                 ${displayCountry} · ${displayAge} yrs
               </div>
-              <div style="font-size: 12px; color: #999; letter-spacing: 1px; margin-top: 4px;">
+              <div style="font-size: 12px; color: #7b8794; letter-spacing: 1px; margin-top: 4px;">
                 Sex: ${displaySex}
               </div>
-              <div style="font-size: 12px; color: #999; letter-spacing: 1px; margin-top: 4px;">
+              <div style="font-size: 12px; color: #7b8794; letter-spacing: 1px; margin-top: 4px;">
                 Phone: ${displayPhone}
               </div>
             </td>

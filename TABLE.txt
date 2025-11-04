@@ -1,13 +1,25 @@
-CREATE TABLE tokens (
-      id SERIAL PRIMARY KEY,
-      token TEXT NOT NULL UNIQUE,
-      name TEXT NOT NULL,
-      age INT NOT NULL,
-      country TEXT NOT NULL,
-      details TEXT,
-      status TEXT NOT NULL DEFAULT 'waiting',
-      admitted_at TIMESTAMP,
-      finished_at TIMESTAMP,
-      created_at TIMESTAMP DEFAULT NOW()
-    );
-CREATE TABLE
+BEGIN;
+
+  CREATE TABLE IF NOT EXISTS tokens (
+    id SERIAL PRIMARY KEY,
+    token TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    age INT NOT NULL,
+    country TEXT NOT NULL,
+    details TEXT,
+    status TEXT NOT NULL DEFAULT 'waiting',
+    admitted_at TIMESTAMP,
+    finished_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW(),
+    sex TEXT,
+    phone TEXT
+  );
+
+  ALTER TABLE tokens
+    ADD COLUMN IF NOT EXISTS sex TEXT,
+    ADD COLUMN IF NOT EXISTS phone TEXT;
+
+  CREATE INDEX IF NOT EXISTS tokens_status_idx ON tokens(status);
+  CREATE INDEX IF NOT EXISTS tokens_token_idx ON tokens(token);
+
+  COMMIT;

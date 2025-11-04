@@ -12,9 +12,9 @@
     }
 
     body {
-      font-family: 'Courier New', monospace;
-      background: #000;
-      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: #f8fafc;
+      color: #1a202c;
       min-height: 100vh;
       display: flex;
       justify-content: center;
@@ -23,100 +23,154 @@
     }
 
     .container {
-      max-width: 520px;
+      max-width: 480px;
       width: 100%;
-      border: 2px solid #fff;
-      padding: 40px;
-      background: #000;
+      background: #ffffff;
+      border-radius: 24px;
+      padding: 48px 40px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+      animation: slideUp 0.6s ease-out;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
     }
 
     h1 {
-      font-size: 24px;
-      font-weight: normal;
-      margin-bottom: 30px;
-      letter-spacing: 3px;
-      text-align: center;
-      text-transform: uppercase;
-      border-bottom: 1px solid #fff;
-      padding-bottom: 20px;
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #1a202c;
+      letter-spacing: -0.5px;
+      line-height: 1.4;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #718096;
+      font-weight: 400;
     }
 
     .form-group {
-      margin-bottom: 25px;
+      margin-bottom: 24px;
+      position: relative;
     }
 
     label {
       display: block;
       margin-bottom: 8px;
-      font-size: 12px;
-      letter-spacing: 1px;
-      text-transform: uppercase;
+      font-size: 14px;
+      font-weight: 600;
+      color: #2d3748;
+      transition: color 0.2s ease;
     }
 
     input,
     textarea,
     select {
       width: 100%;
-      background: #000;
-      border: 1px solid #fff;
-      color: #fff;
-      padding: 12px;
-      font-family: 'Courier New', monospace;
-      font-size: 14px;
-      transition: all 0.3s;
+      background: #f7fafc;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      color: #1a202c;
+      padding: 14px 16px;
+      font-family: inherit;
+      font-size: 15px;
+      transition: all 0.3s ease;
     }
 
     input:focus,
     textarea:focus,
     select:focus {
       outline: none;
-      border-color: #fff;
-      box-shadow: inset 0 0 0 1px #fff;
+      background: #ffffff;
+      border-color: #6366f1;
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+      transform: translateY(-1px);
     }
 
     textarea {
       resize: vertical;
-      min-height: 80px;
+      min-height: 100px;
+      font-family: inherit;
     }
 
     .age-display {
-      margin-top: 5px;
-      font-size: 12px;
-      color: #999;
-      letter-spacing: 1px;
+      margin-top: 8px;
+      font-size: 13px;
+      color: #667eea;
+      font-weight: 600;
+      opacity: 0;
+      transform: translateY(-5px);
+      transition: all 0.3s ease;
+    }
+
+    .age-display.show {
+      opacity: 1;
+      transform: translateY(0);
     }
 
     button[type="submit"] {
       width: 100%;
-      background: #fff;
-      color: #000;
+      background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
+      color: #ffffff;
       border: none;
-      padding: 15px;
-      font-family: 'Courier New', monospace;
-      font-size: 14px;
-      font-weight: bold;
-      letter-spacing: 2px;
-      text-transform: uppercase;
+      border-radius: 12px;
+      padding: 16px;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
       cursor: pointer;
-      transition: all 0.3s;
+      transition: all 0.3s ease;
+      box-shadow: 0 10px 25px rgba(99, 102, 241, 0.3);
+      margin-top: 8px;
     }
 
-    button[type="submit"]:hover {
-      background: #000;
-      color: #fff;
-      border: 1px solid #fff;
+    button[type="submit"]:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 15px 35px rgba(99, 102, 241, 0.4);
+    }
+
+    button[type="submit"]:active:not(:disabled) {
+      transform: translateY(0);
     }
 
     button[type="submit"]:disabled {
-      opacity: 0.5;
+      opacity: 0.6;
       cursor: not-allowed;
+      transform: none;
     }
 
     .error {
-      color: #ff3b3b;
-      font-size: 12px;
-      margin-top: 8px;
+      color: #e53e3e;
+      font-size: 13px;
+      font-weight: 500;
+      margin-top: 12px;
+      padding: 12px 16px;
+      background: #fff5f5;
+      border-radius: 8px;
+      border-left: 4px solid #e53e3e;
       display: none;
+      animation: shake 0.4s ease;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
     }
 
     .error.show {
@@ -126,69 +180,136 @@
     .success-message {
       position: fixed;
       inset: 0;
-      background: #000;
+      background: #ffffff;
       display: none;
       justify-content: center;
       align-items: center;
       flex-direction: column;
-      gap: 12px;
+      gap: 24px;
       text-align: center;
       padding: 20px;
       z-index: 1000;
+      animation: fadeIn 0.4s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
     }
 
     .success-message.show {
       display: flex;
     }
 
+    .token-card {
+      background: #ffffff;
+      border-radius: 24px;
+      padding: 48px 64px;
+      box-shadow: 0 25px 70px rgba(0, 0, 0, 0.3);
+      animation: scaleIn 0.5s ease 0.2s both;
+    }
+
+    @keyframes scaleIn {
+      from {
+        opacity: 0;
+        transform: scale(0.8);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .token-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #718096;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 16px;
+    }
+
     .token-display {
       font-size: 72px;
-      font-weight: bold;
-      letter-spacing: 10px;
-      margin-bottom: 10px;
-      border: 3px solid #fff;
-      padding: 30px 60px;
+      font-weight: 900;
+      letter-spacing: 8px;
+      color: #667eea;
+      font-family: 'Courier New', monospace;
     }
 
     .success-text {
-      font-size: 18px;
-      letter-spacing: 2px;
+      font-size: 24px;
+      font-weight: 700;
+      color: #1a202c;
+      letter-spacing: 0.5px;
+      animation: slideUp 0.5s ease 0.4s both;
     }
 
     .success-text.subtext {
-      font-size: 14px;
-      color: #bbb;
+      font-size: 16px;
+      font-weight: 400;
+      color: #64748b;
+      animation: slideUp 0.5s ease 0.6s both;
+    }
+
+    .required {
+      color: #e53e3e;
     }
 
     @media (max-width: 600px) {
       .container {
-        padding: 32px 24px;
+        padding: 36px 28px;
+        border-radius: 20px;
+      }
+
+      h1 {
+        font-size: 22px;
+      }
+
+      .token-card {
+        padding: 36px 48px;
       }
 
       .token-display {
         font-size: 56px;
-        padding: 24px 40px;
+        letter-spacing: 6px;
+      }
+
+      .success-text {
+        font-size: 20px;
       }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Free Medical Services & Checkup for International Students</h1>
+    <div class="header">
+      <h1>Free Medical Services & Checkup for International Students</h1>
+      <p class="subtitle">please provide your details below.</p>
+    </div>
+
     <form id="checkinForm">
       <div class="form-group">
-        <label for="name">Full Name *</label>
-        <input type="text" id="name" name="name" required autocomplete="name" placeholder="Enter your full name">
+        <label for="name">Full Name <span class="required">*</span></label>
+        <input type="text" id="name" name="name" required autocomplete="name">
       </div>
 
       <div class="form-group">
-        <label for="birthday">Date of Birth *</label>
-        <input type="date" id="birthday" name="birthday" required>
+        <label for="birthday">Date of Birth <span class="required">*</span></label>
+        <input
+          type="text"
+          id="birthday"
+          name="birthday"
+          required
+          autocomplete="bday"
+          inputmode="numeric"
+          placeholder="YYYY-MM-DD"
+        >
         <div class="age-display" id="ageDisplay"></div>
       </div>
 
       <div class="form-group">
-        <label for="country">Country *</label>
+        <label for="country">Country <span class="required">*</span></label>
         <input
           type="text"
           id="country"
@@ -196,25 +317,25 @@
           list="countryList"
           autocomplete="off"
           required
-          placeholder="Start typing or choose your country"
+          placeholder="Start typing your country"
         >
         <datalist id="countryList"></datalist>
       </div>
 
       <div class="form-group">
-        <label for="phone">Phone Number *</label>
+        <label for="phone">Phone Number <span class="required">*</span></label>
         <input
           type="tel"
           id="phone"
           name="phone"
           required
           autocomplete="tel"
-          placeholder="Enter your phone number"
+          placeholder="+1 234 567 8900"
         >
       </div>
 
       <div class="form-group">
-        <label for="sex">Sex *</label>
+        <label for="sex">Sex <span class="required">*</span></label>
         <select id="sex" name="sex" required>
           <option value="">Select an option</option>
           <option value="Female">Female</option>
@@ -225,23 +346,26 @@
       </div>
 
       <div class="form-group">
-        <label for="details">Reason for Visit / Symptoms (optional)</label>
+        <label for="details">Reason for Visit / Symptoms</label>
         <textarea
           id="details"
           name="details"
-          placeholder="Describe your symptoms or reason (optional)"
+          placeholder="Briefly describe your symptoms or reason for visit (optional)"
         ></textarea>
       </div>
 
-      <button type="submit" id="submitBtn">Check In</button>
+      <button type="submit" id="submitBtn">Check In Now</button>
       <div class="error" id="errorMsg"></div>
     </form>
   </div>
 
   <div class="success-message" id="successMessage">
-    <div class="token-display" id="tokenDisplay">---</div>
-    <div class="success-text">Your Token Number</div>
-    <div class="success-text subtext">Please wait inside the waiting room.</div>
+    <div class="token-card">
+      <div class="token-label">Your Token Number</div>
+      <div class="token-display" id="tokenDisplay">---</div>
+    </div>
+    <div class="success-text">Check-in Successful!</div>
+    <div class="success-text subtext">Please wait in the waiting room</div>
   </div>
 
   <script>
@@ -300,9 +424,38 @@
       countryListEl.appendChild(option);
     });
 
+    function parseDateInput(value) {
+      const trimmed = (value || '').trim();
+      if (!trimmed) {
+        return null;
+      }
+
+      const isoMatch = trimmed.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+      if (isoMatch) {
+        const year = Number(isoMatch[1]);
+        const month = Number(isoMatch[2]) - 1;
+        const day = Number(isoMatch[3]);
+        const candidate = new Date(year, month, day);
+        if (
+          candidate.getFullYear() === year &&
+          candidate.getMonth() === month &&
+          candidate.getDate() === day
+        ) {
+          return candidate;
+        }
+        return null;
+      }
+
+      const parsed = new Date(trimmed);
+      if (Number.isNaN(parsed.getTime())) {
+        return null;
+      }
+      return parsed;
+    }
+
     function calculateAge(dateValue) {
-      const birthday = new Date(dateValue);
-      if (Number.isNaN(birthday.getTime())) {
+      const birthday = parseDateInput(dateValue);
+      if (!birthday) {
         return null;
       }
       const today = new Date();
@@ -314,15 +467,27 @@
       return age;
     }
 
-    birthdayInput.addEventListener('change', (event) => {
-      const age = calculateAge(event.target.value);
+    function updateAgePreview(value) {
+      const trimmed = (value || '').trim();
+      const age = calculateAge(trimmed);
+      if (!trimmed) {
+        ageDisplay.textContent = '';
+        ageDisplay.classList.remove('show');
+        return;
+      }
+
+      ageDisplay.classList.add('show');
       if (age !== null && age >= 0 && age < 150) {
         ageDisplay.textContent = `Age: ${age} years old`;
-        ageDisplay.style.color = '#fff';
+        ageDisplay.style.color = '#667eea';
       } else {
         ageDisplay.textContent = 'Invalid date';
-        ageDisplay.style.color = '#ff3b3b';
+        ageDisplay.style.color = '#e53e3e';
       }
+    }
+
+    birthdayInput.addEventListener('input', (event) => {
+      updateAgePreview(event.target.value);
     });
 
     function normalizeCountry(value) {
@@ -351,12 +516,14 @@
       submitBtn.textContent = 'Checking In...';
       errorMsg.classList.remove('show');
 
-      const age = calculateAge(birthdayInput.value);
+      const birthdayRaw = birthdayInput.value.trim();
+      const age = calculateAge(birthdayRaw);
+      updateAgePreview(birthdayRaw);
       if (age === null || age < 0 || age >= 150) {
         errorMsg.textContent = 'Please enter a valid birth date.';
         errorMsg.classList.add('show');
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Check In';
+        submitBtn.textContent = 'Check In Now';
         return;
       }
 
@@ -367,7 +534,7 @@
         errorMsg.textContent = 'Please choose your country.';
         errorMsg.classList.add('show');
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Check In';
+        submitBtn.textContent = 'Check In Now';
         return;
       }
 
@@ -376,7 +543,7 @@
         errorMsg.textContent = 'Please enter your phone number.';
         errorMsg.classList.add('show');
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Check In';
+        submitBtn.textContent = 'Check In Now';
         return;
       }
 
@@ -384,7 +551,7 @@
         errorMsg.textContent = 'Please enter a valid phone number.';
         errorMsg.classList.add('show');
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Check In';
+        submitBtn.textContent = 'Check In Now';
         return;
       }
 
@@ -393,7 +560,7 @@
         errorMsg.textContent = 'Please select your sex.';
         errorMsg.classList.add('show');
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Check In';
+        submitBtn.textContent = 'Check In Now';
         return;
       }
 
@@ -426,7 +593,7 @@
         errorMsg.textContent = 'Check-in failed. Please try again.';
         errorMsg.classList.add('show');
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Check In';
+        submitBtn.textContent = 'Check In Now';
       }
     });
   </script>
