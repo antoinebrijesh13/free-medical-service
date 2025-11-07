@@ -280,8 +280,8 @@
     const ticker = document.getElementById('ticker');
     const socket = io();
 
-    let admitted = [];
-    let snapshotCounts = { total: 0, waiting: 0, allowed: 0 };
+    let boardPeople = [];
+    const snapshotCounts = { total: 0, waiting: 0, allowed: 0 };
 
     function formatTicker(count) {
       if (!count) {
@@ -290,18 +290,62 @@
       return `${count} person${count === 1 ? '' : 's'} currently admitted`;
     }
 
-    function renderCards() {
-      const hasPeople = admitted.length > 0;
-      emptyState.style.display = hasPeople ? 'none' : 'block';
-      ticker.textContent = formatTicker(admitted.length);
+    function getStatusPriority(status) {
+      return (status || '').toLowerCase() === 'allowed' ? 0 : 1;
+    }
 
-      const cards = admitted
+    function getSortValue(person) {
+      if (person && person.admitted_at) {
+        const time = Date.parse(person.admitted_at);
+        if (!Number.isNaN(time)) {
+          return time;
+        }
+      }
+      return (person && person.id) || 0;
+    }
+
+    function sortForDisplay(a, b) {
+      const priorityDiff = getStatusPriority(a.status) - getStatusPriority(b.status);
+      if (priorityDiff !== 0) {
+        return priorityDiff;
+      }
+      return getSortValue(a) - getSortValue(b);
+    }
+
+    function setBoardPeople(list) {
+      boardPeople = (list || [])
+        .filter((person) => {
+          if (!person) return false;
+          const status = (person.status || '').toLowerCase();
+          return status === 'allowed' || status === 'waiting';
+        })
+        .sort(sortForDisplay)
+        .slice(0, TOTAL_CARD_SLOTS)
+        .map((person) => ({
+          ...person,
+          age: Number.isFinite(person.age) ? person.age : null,
+          name: person.name || 'Unnamed',
+          token: (person.token || '---').toUpperCase(),
+          country: person.country || 'Unknown Origin',
+          status: (person.status || 'waiting').toUpperCase(),
+        }));
+
+      renderCards();
+    }
+
+    function renderCards() {
+      const hasPeople = boardPeople.length > 0;
+      emptyState.style.display = hasPeople ? 'none' : 'block';
+      ticker.textContent = formatTicker(snapshotCounts.allowed);
+
+      const cards = boardPeople
         .map((person) => {
           const age = Number.isFinite(person.age) ? `${person.age} yrs` : 'AGE N/A';
-          const country = person.country || 'Unknown Origin';
-          const statusText = (person.status || 'allowed').toUpperCase();
-          const statusClass =
-            statusText === 'ALLOWED' ? 'card__status card__status--allowed' : 'card__status';
+          const statusText = person.status;
+          const isAllowed = statusText === 'ALLOWED';
+          const statusClass = isAllowed
+            ? 'card__status card__status--allowed'
+            : 'card__status card__status--waiting';
 
           return `
             <div class="card card--visible" data-token="${person.token}">
@@ -309,7 +353,7 @@
               <div class="${statusClass}">${statusText}</div>
               <div class="card__name">${person.name}</div>
               <div class="card__meta">
-                <span>${country}</span>
+                <span>${person.country}</span>
                 <span>${age}</span>
               </div>
               <div class="card__details">Please proceed when called</div>
@@ -318,7 +362,7 @@
         })
         .join('');
 
-      const placeholdersCount = Math.max(0, TOTAL_CARD_SLOTS - admitted.length);
+      const placeholdersCount = Math.max(0, TOTAL_CARD_SLOTS - boardPeople.length);
       const placeholders = Array.from({ length: placeholdersCount })
         .map(
           () => `
@@ -339,82 +383,41 @@
       document.getElementById('allowedCount').textContent = snapshotCounts.allowed;
     }
 
-    function setAdmitted(list) {
-      admitted = (list || [])
-        .slice(0, TOTAL_CARD_SLOTS)
-        .map((person) => ({
-          ...person,
-          name: person.name || 'Unnamed',
-          token: person.token || '---',
-          status: (person.status || 'allowed').toUpperCase(),
-        }));
-      renderCards();
-    }
-
-    function removeToken(token) {
-      const normalized = token.trim().toUpperCase();
-      const next = admitted.filter((person) => person.token !== normalized);
-      if (next.length !== admitted.length) {
-        admitted = next;
-        renderCards();
-      }
-    }
-
-    async function fetchCounts() {
+    async function fetchPatientsSnapshot() {
       try {
         const res = await fetch(`${API_BASE}/api/patients`);
-        if (!res.ok) throw new Error('Failed to load people counts');
-        const people = await res.json();
+        if (!res.ok) throw new Error('Failed to load patient data');
+        const data = await res.json();
+        const people = Array.isArray(data) ? data : [];
 
-        snapshotCounts.total = Array.isArray(people) ? people.length : 0;
-        snapshotCounts.waiting = Array.isArray(people)
-          ? people.filter((p) => p.status === 'waiting').length
-          : 0;
+        snapshotCounts.total = people.length;
+        snapshotCounts.allowed = people.filter(
+          (person) => (person.status || '').toLowerCase() === 'allowed'
+        ).length;
+        snapshotCounts.waiting = people.filter(
+          (person) => (person.status || '').toLowerCase() === 'waiting'
+        ).length;
+
+        setBoardPeople(people);
       } catch (error) {
         console.error(error);
         ticker.textContent = 'Unable to fetch data. Retrying...';
       }
     }
 
-    async function fetchSnapshot() {
-      try {
-        const allowedRes = await fetch(`${API_BASE}/api/allowed`);
-        if (!allowedRes.ok) throw new Error('Failed to load allowed people');
-
-        const allowedData = await allowedRes.json();
-        snapshotCounts.allowed = Array.isArray(allowedData) ? allowedData.length : 0;
-
-        await fetchCounts();
-        setAdmitted(allowedData);
-      } catch (error) {
-        console.error(error);
-        ticker.textContent = 'Unable to fetch data. Retrying...';
-      }
-    }
-
-    async function handleAllowedUpdate(list) {
-      snapshotCounts.allowed = Array.isArray(list) ? list.length : 0;
-      await fetchCounts();
-      setAdmitted(list);
-    }
-
-    socket.on('allowed-update', (list) => {
-      handleAllowedUpdate(list);
+    socket.on('allowed-update', () => {
+      fetchPatientsSnapshot();
     });
 
-    socket.on('patient-finished', async (token) => {
-      removeToken(token);
-      await fetchCounts();
-      snapshotCounts.allowed = Math.min(admitted.length, TOTAL_CARD_SLOTS);
-      renderCards();
+    socket.on('patient-finished', () => {
+      fetchPatientsSnapshot();
     });
 
-    socket.on('new-patient', async () => {
-      await fetchCounts();
-      renderCards();
+    socket.on('new-patient', () => {
+      fetchPatientsSnapshot();
     });
 
-    fetchSnapshot();
+    fetchPatientsSnapshot();
   </script>
 </body>
 </html>
