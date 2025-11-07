@@ -23,3 +23,5 @@ BEGIN;
   CREATE INDEX IF NOT EXISTS tokens_token_idx ON tokens(token);
 
   COMMIT;
+
+  \copy (SELECT * FROM tokens ORDER BY id) TO 'tokens.csv' WITH CSV HEADER;
