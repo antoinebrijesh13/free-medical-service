@@ -7,7 +7,7 @@
   <script src="/socket.io/socket.io.js"></script>
   <style>
     :root {
-      color-scheme: light;
+      color-scheme: dark;
     }
 
     * {
@@ -17,9 +17,9 @@
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-      background: #f4f7fb;
-      color: #1f2933;
+      font-family: 'Courier New', monospace;
+      background: #000;
+      color: #fff;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
@@ -30,14 +30,12 @@
     .board {
       width: 100%;
       max-width: 1320px;
-      border: 1px solid #e2e8f0;
+      border: 4px solid #fff;
       padding: 50px 60px 60px;
-      background: #ffffff;
+      background: #000;
       display: flex;
       flex-direction: column;
       gap: 30px;
-      border-radius: 28px;
-      box-shadow: 0 35px 70px -40px rgba(15, 23, 42, 0.45);
     }
 
     h1 {
@@ -46,9 +44,8 @@
       letter-spacing: 10px;
       text-transform: uppercase;
       text-align: center;
-      border-bottom: 1px solid #e2e8f0;
+      border-bottom: 1px solid #fff;
       padding-bottom: 24px;
-      color: #102a43;
     }
 
     .ticker {
@@ -56,7 +53,7 @@
       text-align: center;
       letter-spacing: 4px;
       text-transform: uppercase;
-      color: #627d98;
+      color: #aaa;
     }
 
     .legend {
@@ -66,7 +63,7 @@
       font-size: 12px;
       letter-spacing: 2px;
       text-transform: uppercase;
-      color: #7b8794;
+      color: #666;
     }
 
     .legend span {
@@ -78,14 +75,12 @@
     .legend .badge {
       width: 16px;
       height: 16px;
-      border: 2px solid #cbd2d9;
-      background: #f8fafc;
-      border-radius: 6px;
+      border: 2px solid #fff;
     }
 
     .legend .badge--allowed {
-      background: #3ecf8e;
-      border-color: #3ecf8e;
+      background: #0f0;
+      border-color: #0f0;
     }
 
     .stats {
@@ -96,27 +91,23 @@
     }
 
     .stats__item {
-      border: 1px solid #e2e8f0;
+      border: 1px solid #fff;
       padding: 18px 28px;
       text-align: center;
       letter-spacing: 3px;
       text-transform: uppercase;
       min-width: 200px;
-      background: #f8fafc;
-      border-radius: 18px;
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
     }
 
     .stats__label {
       display: block;
       font-size: 12px;
-      color: #7b8794;
+      color: #888;
       margin-bottom: 10px;
     }
 
     .stats__value {
       font-size: 26px;
-      color: #1f2933;
     }
 
     .grid {
@@ -126,7 +117,7 @@
     }
 
     .card {
-      border: 1px solid #e2e8f0;
+      border: 2px solid #fff;
       padding: 30px 24px;
       text-align: center;
       letter-spacing: 2px;
@@ -137,9 +128,7 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
-      background: #ffffff;
-      border-radius: 22px;
-      box-shadow: 0 24px 60px -38px rgba(15, 23, 42, 0.4);
+      background: rgba(0, 0, 0, 0.85);
     }
 
     .card--visible {
@@ -150,14 +139,12 @@
     .card__token {
       font-size: 40px;
       letter-spacing: 10px;
-      color: #102a43;
     }
 
     .card__name {
       font-size: 20px;
       text-transform: uppercase;
       line-height: 1.4;
-      color: #243b53;
     }
 
     .card__meta {
@@ -166,13 +153,13 @@
       gap: 16px;
       font-size: 13px;
       letter-spacing: 2px;
-      color: #7b8794;
+      color: #aaa;
       text-transform: uppercase;
     }
 
     .card__details {
       font-size: 12px;
-      color: #829ab1;
+      color: #888;
       text-transform: uppercase;
     }
 
@@ -185,42 +172,27 @@
       font-size: 12px;
       letter-spacing: 3px;
       text-transform: uppercase;
-      border: 1px solid #cbd2d9;
-      color: #334e68;
-      background: #f5f7fa;
-      border-radius: 999px;
+      border: 1px solid #fff;
     }
 
     .card__status--allowed {
-      background: #3ecf8e;
-      color: #0f172a;
-      border-color: #3ecf8e;
-    }
-
-    .card__status--waiting {
-      background: #eef2ff;
-      border-color: #c7d2fe;
-      color: #4c51bf;
-    }
-
-    .card--placeholder {
-      background: #f8fafc;
-      border-style: dashed;
-      box-shadow: none;
+      background: #0f0;
+      color: #000;
+      border-color: #0f0;
     }
 
     .empty {
       text-align: center;
       padding: 60px 20px;
       letter-spacing: 6px;
-      color: #7b8794;
+      color: #555;
       font-size: 20px;
     }
 
     .footer {
       font-size: 14px;
       letter-spacing: 3px;
-      color: #7b8794;
+      color: #666;
       text-transform: uppercase;
       text-align: center;
       margin-top: 30px;
@@ -246,6 +218,7 @@
   </style>
 </head>
 <body>
+  <audio id="admitBell" src="/sounds/bell.mp3" preload="auto"></audio>
   <div class="board">
     <h1>Now Admitting</h1>
     <div class="ticker" id="ticker">Awaiting updates...</div>
@@ -255,33 +228,32 @@
     </div>
     <div class="stats">
       <div class="stats__item">
-        <span class="stats__label">Total</span>
+        <span class="stats__label">Total Patients</span>
         <span class="stats__value" id="totalCount">0</span>
       </div>
       <div class="stats__item">
-        <span class="stats__label">People Waiting</span>
+        <span class="stats__label">Patients Waiting</span>
         <span class="stats__value" id="waitingCount">0</span>
       </div>
       <div class="stats__item">
-        <span class="stats__label">People Allowed</span>
+        <span class="stats__label">Patients Allowed</span>
         <span class="stats__value" id="allowedCount">0</span>
       </div>
     </div>
     <div class="grid" id="grid"></div>
     <div class="empty" id="emptyState">No people admitted yet. Please wait for your token.</div>
   </div>
-  <p class="footer">This board updates in real time. Proceed when your token is displayed.</p>
+  <p class="footer">Proceed when your token is displayed.</p>
 
   <script>
     const API_BASE = window.location.origin;
-    const TOTAL_CARD_SLOTS = 20;
     const grid = document.getElementById('grid');
     const emptyState = document.getElementById('emptyState');
     const ticker = document.getElementById('ticker');
     const socket = io();
 
-    let boardPeople = [];
-    const snapshotCounts = { total: 0, waiting: 0, allowed: 0 };
+    let admitted = [];
+    let snapshotCounts = { total: 0, waiting: 0, allowed: 0 };
 
     function formatTicker(count) {
       if (!count) {
@@ -290,62 +262,18 @@
       return `${count} person${count === 1 ? '' : 's'} currently admitted`;
     }
 
-    function getStatusPriority(status) {
-      return (status || '').toLowerCase() === 'allowed' ? 0 : 1;
-    }
-
-    function getSortValue(person) {
-      if (person && person.admitted_at) {
-        const time = Date.parse(person.admitted_at);
-        if (!Number.isNaN(time)) {
-          return time;
-        }
-      }
-      return (person && person.id) || 0;
-    }
-
-    function sortForDisplay(a, b) {
-      const priorityDiff = getStatusPriority(a.status) - getStatusPriority(b.status);
-      if (priorityDiff !== 0) {
-        return priorityDiff;
-      }
-      return getSortValue(a) - getSortValue(b);
-    }
-
-    function setBoardPeople(list) {
-      boardPeople = (list || [])
-        .filter((person) => {
-          if (!person) return false;
-          const status = (person.status || '').toLowerCase();
-          return status === 'allowed' || status === 'waiting';
-        })
-        .sort(sortForDisplay)
-        .slice(0, TOTAL_CARD_SLOTS)
-        .map((person) => ({
-          ...person,
-          age: Number.isFinite(person.age) ? person.age : null,
-          name: person.name || 'Unnamed',
-          token: (person.token || '---').toUpperCase(),
-          country: person.country || 'Unknown Origin',
-          status: (person.status || 'waiting').toUpperCase(),
-        }));
-
-      renderCards();
-    }
-
     function renderCards() {
-      const hasPeople = boardPeople.length > 0;
+      const hasPeople = admitted.length > 0;
       emptyState.style.display = hasPeople ? 'none' : 'block';
-      ticker.textContent = formatTicker(snapshotCounts.allowed);
+      ticker.textContent = formatTicker(admitted.length);
 
-      const cards = boardPeople
+      const cards = admitted
         .map((person) => {
           const age = Number.isFinite(person.age) ? `${person.age} yrs` : 'AGE N/A';
-          const statusText = person.status;
-          const isAllowed = statusText === 'ALLOWED';
-          const statusClass = isAllowed
-            ? 'card__status card__status--allowed'
-            : 'card__status card__status--waiting';
+          const country = person.country || 'Unknown Origin';
+          const statusText = (person.status || 'allowed').toUpperCase();
+          const statusClass =
+            statusText === 'ALLOWED' ? 'card__status card__status--allowed' : 'card__status';
 
           return `
             <div class="card card--visible" data-token="${person.token}">
@@ -353,7 +281,7 @@
               <div class="${statusClass}">${statusText}</div>
               <div class="card__name">${person.name}</div>
               <div class="card__meta">
-                <span>${person.country}</span>
+                <span>${country}</span>
                 <span>${age}</span>
               </div>
               <div class="card__details">Please proceed when called</div>
@@ -362,13 +290,14 @@
         })
         .join('');
 
-      const placeholdersCount = Math.max(0, TOTAL_CARD_SLOTS - boardPeople.length);
+      // Pad with empty slots up to 20
+      const placeholdersCount = Math.max(0, 20 - admitted.length);
       const placeholders = Array.from({ length: placeholdersCount })
         .map(
-          () => `
-            <div class="card card--visible card--placeholder">
+          (_, index) => `
+            <div class="card card--visible">
               <div class="card__token">---</div>
-              <div class="card__status card__status--waiting">Waiting</div>
+              <div class="card__status">Waiting</div>
               <div class="card__name">Available Slot</div>
               <div class="card__details">Awaiting next person</div>
             </div>
@@ -383,41 +312,82 @@
       document.getElementById('allowedCount').textContent = snapshotCounts.allowed;
     }
 
-    async function fetchPatientsSnapshot() {
+    function setAdmitted(list) {
+      admitted = (list || [])
+        .slice(0, 20)
+        .map((person) => ({
+          ...person,
+          name: person.name || 'Unnamed',
+          token: person.token || '---',
+          status: (person.status || 'allowed').toUpperCase(),
+        }));
+      renderCards();
+    }
+
+    function removeToken(token) {
+      const normalized = token.trim().toUpperCase();
+      const next = admitted.filter((person) => person.token !== normalized);
+      if (next.length !== admitted.length) {
+        admitted = next;
+        renderCards();
+      }
+    }
+
+    async function fetchCounts() {
       try {
         const res = await fetch(`${API_BASE}/api/patients`);
-        if (!res.ok) throw new Error('Failed to load patient data');
-        const data = await res.json();
-        const people = Array.isArray(data) ? data : [];
+        if (!res.ok) throw new Error('Failed to load people counts');
+        const people = await res.json();
 
-        snapshotCounts.total = people.length;
-        snapshotCounts.allowed = people.filter(
-          (person) => (person.status || '').toLowerCase() === 'allowed'
-        ).length;
-        snapshotCounts.waiting = people.filter(
-          (person) => (person.status || '').toLowerCase() === 'waiting'
-        ).length;
-
-        setBoardPeople(people);
+        snapshotCounts.total = Array.isArray(people) ? people.length : 0;
+        snapshotCounts.waiting = Array.isArray(people)
+          ? people.filter((p) => p.status === 'waiting').length
+          : 0;
       } catch (error) {
         console.error(error);
         ticker.textContent = 'Unable to fetch data. Retrying...';
       }
     }
 
-    socket.on('allowed-update', () => {
-      fetchPatientsSnapshot();
+    async function fetchSnapshot() {
+      try {
+        const allowedRes = await fetch(`${API_BASE}/api/allowed`);
+        if (!allowedRes.ok) throw new Error('Failed to load allowed people');
+
+        const allowedData = await allowedRes.json();
+        snapshotCounts.allowed = Array.isArray(allowedData) ? allowedData.length : 0;
+
+        await fetchCounts();
+        setAdmitted(allowedData);
+      } catch (error) {
+        console.error(error);
+        ticker.textContent = 'Unable to fetch data. Retrying...';
+      }
+    }
+
+    async function handleAllowedUpdate(list) {
+      snapshotCounts.allowed = Array.isArray(list) ? list.length : 0;
+      await fetchCounts();
+      setAdmitted(list);
+    }
+
+    socket.on('allowed-update', (list) => {
+      handleAllowedUpdate(list);
     });
 
-    socket.on('patient-finished', () => {
-      fetchPatientsSnapshot();
+    socket.on('patient-finished', async (token) => {
+      removeToken(token);
+      await fetchCounts();
+      snapshotCounts.allowed = admitted.length;
+      renderCards();
     });
 
-    socket.on('new-patient', () => {
-      fetchPatientsSnapshot();
+    socket.on('new-patient', async () => {
+      await fetchCounts();
+      renderCards();
     });
 
-    fetchPatientsSnapshot();
+    fetchSnapshot();
   </script>
 </body>
 </html>
