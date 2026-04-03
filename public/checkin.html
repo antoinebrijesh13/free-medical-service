@@ -31,6 +31,7 @@
       padding: 0;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
+      overflow-y: auto;
     }
 
     .container {
@@ -42,7 +43,6 @@
       display: flex;
       flex-direction: column;
       position: relative;
-      overflow: hidden;
     }
 
     /* Top accent bar */
@@ -120,22 +120,17 @@
       background: #1a202c;
     }
 
-    /* Steps */
     .steps-wrapper {
       flex: 1;
       display: flex;
       flex-direction: column;
       position: relative;
-      overflow: hidden;
     }
 
     .step {
       display: none;
       flex-direction: column;
       flex: 1;
-      overflow-y: auto;
-      scrollbar-width: none;
-      -ms-overflow-style: none;
       animation: fadeSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
@@ -268,9 +263,6 @@
       margin-top: auto;
       padding: 20px 0 32px;
       flex-shrink: 0;
-      position: sticky;
-      bottom: 0;
-      background: #ffffff;
     }
 
     .btn {
@@ -958,6 +950,15 @@
         submitBtn.disabled = false;
         submitBtn.textContent = 'Check In Now';
       }
+    });
+
+    // Mobile keyboard: scroll the input + button into view
+    document.querySelectorAll('.step input, .step select, .step textarea').forEach((el) => {
+      el.addEventListener('focus', () => {
+        setTimeout(() => {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 350);
+      });
     });
   </script>
 </body>
