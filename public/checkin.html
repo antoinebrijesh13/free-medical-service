@@ -30,22 +30,17 @@
       padding: 48px 40px;
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
       animation: slideUp 0.6s ease-out;
+      overflow: hidden;
     }
 
     @keyframes slideUp {
-      from {
-        opacity: 0;
-        transform: translateY(30px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     .header {
       text-align: center;
-      margin-bottom: 40px;
+      margin-bottom: 36px;
     }
 
     h1 {
@@ -63,18 +58,77 @@
       font-weight: 400;
     }
 
-    .form-group {
-      margin-bottom: 24px;
-      position: relative;
+    /* Progress bar */
+    .progress {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 36px;
     }
 
-    label {
-      display: block;
-      margin-bottom: 8px;
-      font-size: 14px;
+    .progress__dot {
+      flex: 1;
+      height: 4px;
+      border-radius: 4px;
+      background: #e2e8f0;
+      transition: background 0.4s ease;
+    }
+
+    .progress__dot.active {
+      background: #1a202c;
+    }
+
+    .progress__dot.completed {
+      background: #1a202c;
+    }
+
+    /* Steps */
+    .steps-wrapper {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .step {
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      animation: fadeSlideIn 0.35s ease-out;
+    }
+
+    .step.active {
+      display: flex;
+    }
+
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateX(30px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes fadeSlideBack {
+      from { opacity: 0; transform: translateX(-30px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .step.slide-back {
+      animation: fadeSlideBack 0.35s ease-out;
+    }
+
+    .step__label {
+      font-size: 13px;
       font-weight: 600;
-      color: #2d3748;
-      transition: color 0.2s ease;
+      color: #718096;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+    }
+
+    .step__question {
+      font-size: 24px;
+      font-weight: 700;
+      color: #1a202c;
+      letter-spacing: -0.5px;
+      line-height: 1.3;
+      margin-bottom: 20px;
     }
 
     input,
@@ -87,7 +141,7 @@
       color: #1a202c;
       padding: 14px 16px;
       font-family: inherit;
-      font-size: 15px;
+      font-size: 16px;
       transition: all 0.3s ease;
     }
 
@@ -96,9 +150,8 @@
     select:focus {
       outline: none;
       background: #ffffff;
-      border-color: #6366f1;
-      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
-      transform: translateY(-1px);
+      border-color: #1a202c;
+      box-shadow: 0 0 0 4px rgba(26, 32, 44, 0.08);
     }
 
     textarea {
@@ -108,9 +161,9 @@
     }
 
     .age-display {
-      margin-top: 8px;
+      margin-top: 4px;
       font-size: 13px;
-      color: #667eea;
+      color: #1a202c;
       font-weight: 600;
       opacity: 0;
       transform: translateY(-5px);
@@ -122,44 +175,87 @@
       transform: translateY(0);
     }
 
-    button[type="submit"] {
-      width: 100%;
-      background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
-      color: #ffffff;
+    .age-display.error {
+      color: #e53e3e;
+    }
+
+    /* Buttons */
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .btn {
+      flex: 1;
       border: none;
       border-radius: 12px;
-      padding: 16px;
+      padding: 14px 16px;
       font-family: inherit;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
-      letter-spacing: 0.5px;
       cursor: pointer;
       transition: all 0.3s ease;
-      box-shadow: 0 10px 25px rgba(99, 102, 241, 0.3);
-      margin-top: 8px;
+      letter-spacing: 0.3px;
     }
 
-    button[type="submit"]:hover:not(:disabled) {
+    .btn--next {
+      background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+      color: #ffffff;
+      box-shadow: 0 10px 25px rgba(26, 32, 44, 0.3);
+    }
+
+    .btn--next:hover:not(:disabled) {
       transform: translateY(-2px);
-      box-shadow: 0 15px 35px rgba(99, 102, 241, 0.4);
+      box-shadow: 0 15px 35px rgba(26, 32, 44, 0.4);
     }
 
-    button[type="submit"]:active:not(:disabled) {
+    .btn--next:active:not(:disabled) {
       transform: translateY(0);
     }
 
-    button[type="submit"]:disabled {
-      opacity: 0.6;
+    .btn--next:disabled {
+      opacity: 0.4;
       cursor: not-allowed;
       transform: none;
     }
 
+    .btn--back {
+      background: #f7fafc;
+      color: #2d3748;
+      border: 2px solid #e2e8f0;
+      box-shadow: none;
+    }
+
+    .btn--back:hover {
+      background: #edf2f7;
+      border-color: #cbd5e0;
+    }
+
+    .btn--skip {
+      background: none;
+      color: #718096;
+      font-weight: 500;
+      font-size: 14px;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      border: none;
+      cursor: pointer;
+      padding: 8px 0;
+      transition: color 0.2s ease;
+    }
+
+    .btn--skip:hover {
+      color: #1a202c;
+    }
+
+    /* Error */
     .error {
       color: #e53e3e;
       font-size: 13px;
       font-weight: 500;
-      margin-top: 12px;
-      padding: 12px 16px;
+      margin-top: 8px;
+      padding: 10px 14px;
       background: #fff5f5;
       border-radius: 8px;
       border-left: 4px solid #e53e3e;
@@ -177,6 +273,41 @@
       display: block;
     }
 
+    /* Review step */
+    .review-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .review-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: #f7fafc;
+      border-radius: 10px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .review-item__label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #718096;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .review-item__value {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1a202c;
+      text-align: right;
+      max-width: 60%;
+      word-break: break-word;
+    }
+
+    /* Success */
     .success-message {
       position: fixed;
       inset: 0;
@@ -210,14 +341,8 @@
     }
 
     @keyframes scaleIn {
-      from {
-        opacity: 0;
-        transform: scale(0.8);
-      }
-      to {
-        opacity: 1;
-        transform: scale(1);
-      }
+      from { opacity: 0; transform: scale(0.8); }
+      to { opacity: 1; transform: scale(1); }
     }
 
     .token-label {
@@ -233,7 +358,7 @@
       font-size: 72px;
       font-weight: 900;
       letter-spacing: 8px;
-      color: #667eea;
+      color: #1a202c;
       font-family: 'Courier New', monospace;
     }
 
@@ -252,18 +377,19 @@
       animation: slideUp 0.5s ease 0.6s both;
     }
 
-    .required {
-      color: #e53e3e;
+    /* Country datalist styling */
+    datalist {
+      display: none;
     }
 
     @media (max-width: 600px) {
       .container {
-        padding: 36px 28px;
+        padding: 36px 24px;
         border-radius: 20px;
       }
 
-      h1 {
-        font-size: 22px;
+      .step__question {
+        font-size: 20px;
       }
 
       .token-card {
@@ -285,78 +411,111 @@
   <div class="container">
     <div class="header">
       <h1>Free Medical Services & Checkup for International Students</h1>
-      <p class="subtitle">please provide your details below.</p>
+      <p class="subtitle">Fill in your details step by step.</p>
     </div>
 
-    <form id="checkinForm">
-      <div class="form-group">
-        <label for="name">Full Name <span class="required">*</span></label>
-        <input type="text" id="name" name="name" required autocomplete="name">
+    <div class="progress" id="progressBar">
+      <div class="progress__dot active" data-step="0"></div>
+      <div class="progress__dot" data-step="1"></div>
+      <div class="progress__dot" data-step="2"></div>
+      <div class="progress__dot" data-step="3"></div>
+      <div class="progress__dot" data-step="4"></div>
+      <div class="progress__dot" data-step="5"></div>
+      <div class="progress__dot" data-step="6"></div>
+    </div>
+
+    <div class="steps-wrapper">
+      <!-- Step 0: Name -->
+      <div class="step active" data-step="0">
+        <div class="step__label">Step 1 of 7</div>
+        <div class="step__question">What is your full name?</div>
+        <input type="text" id="name" autocomplete="name" placeholder="Enter your full name">
+        <div class="error" id="errorName"></div>
+        <div class="btn-row">
+          <button class="btn btn--next" id="nextBtn0">Next</button>
+        </div>
       </div>
 
-      <div class="form-group">
-        <label for="birthday">Date of Birth <span class="required">*</span></label>
-        <input
-          type="text"
-          id="birthday"
-          name="birthday"
-          required
-          autocomplete="bday"
-          inputmode="numeric"
-          placeholder="YYYY-MM-DD"
-        >
+      <!-- Step 1: Birthday -->
+      <div class="step" data-step="1">
+        <div class="step__label">Step 2 of 7</div>
+        <div class="step__question">What is your date of birth?</div>
+        <input type="text" id="birthday" inputmode="numeric" placeholder="YYYY-MM-DD" autocomplete="bday">
         <div class="age-display" id="ageDisplay"></div>
+        <div class="error" id="errorBirthday"></div>
+        <div class="btn-row">
+          <button class="btn btn--back" id="backBtn1">Back</button>
+          <button class="btn btn--next" id="nextBtn1">Next</button>
+        </div>
       </div>
 
-      <div class="form-group">
-        <label for="country">Country <span class="required">*</span></label>
-        <input
-          type="text"
-          id="country"
-          name="country"
-          list="countryList"
-          autocomplete="off"
-          required
-          placeholder="Start typing your country"
-        >
+      <!-- Step 2: Country -->
+      <div class="step" data-step="2">
+        <div class="step__label">Step 3 of 7</div>
+        <div class="step__question">Which country are you from?</div>
+        <input type="text" id="country" list="countryList" autocomplete="off" placeholder="Start typing your country">
         <datalist id="countryList"></datalist>
+        <div class="error" id="errorCountry"></div>
+        <div class="btn-row">
+          <button class="btn btn--back" id="backBtn2">Back</button>
+          <button class="btn btn--next" id="nextBtn2">Next</button>
+        </div>
       </div>
 
-      <div class="form-group">
-        <label for="phone">Phone Number <span class="required">*</span></label>
-        <input
-          type="tel"
-          id="phone"
-          name="phone"
-          required
-          autocomplete="tel"
-          placeholder="+1 234 567 8900"
-        >
+      <!-- Step 3: Phone -->
+      <div class="step" data-step="3">
+        <div class="step__label">Step 4 of 7</div>
+        <div class="step__question">What is your phone number?</div>
+        <input type="tel" id="phone" autocomplete="tel" placeholder="+1 234 567 8900">
+        <div class="error" id="errorPhone"></div>
+        <div class="btn-row">
+          <button class="btn btn--back" id="backBtn3">Back</button>
+          <button class="btn btn--next" id="nextBtn3">Next</button>
+        </div>
       </div>
 
-      <div class="form-group">
-        <label for="sex">Gender<span class="required">*</span></label>
-        <select id="sex" name="sex" required>
+      <!-- Step 4: Gender -->
+      <div class="step" data-step="4">
+        <div class="step__label">Step 5 of 7</div>
+        <div class="step__question">What is your gender?</div>
+        <select id="sex">
           <option value="">Select an option</option>
           <option value="Female">Female</option>
           <option value="Male">Male</option>
           <option value="Other">Other</option>
           <option value="Prefer not to say">Prefer not to say</option>
         </select>
+        <div class="error" id="errorSex"></div>
+        <div class="btn-row">
+          <button class="btn btn--back" id="backBtn4">Back</button>
+          <button class="btn btn--next" id="nextBtn4">Next</button>
+        </div>
       </div>
 
-      <div class="form-group">
-        <label for="details">Reason for Visit / Symptoms</label>
-        <textarea
-          id="details"
-          name="details"
-          placeholder="Briefly describe your symptoms or reason for visit (optional)"
-        ></textarea>
+      <!-- Step 5: Details (optional) -->
+      <div class="step" data-step="5">
+        <div class="step__label">Step 6 of 7</div>
+        <div class="step__question">Reason for visit / symptoms?</div>
+        <textarea id="details" placeholder="Briefly describe your symptoms or reason for visit"></textarea>
+        <div class="btn-row">
+          <button class="btn btn--back" id="backBtn5">Back</button>
+          <button class="btn btn--next" id="nextBtn5">Next</button>
+        </div>
+        <button class="btn--skip" id="skipBtn5">Skip this step</button>
       </div>
 
-      <button type="submit" id="submitBtn">Check In Now</button>
-      <div class="error" id="errorMsg"></div>
-    </form>
+      <!-- Step 6: Review -->
+      <div class="step" data-step="6">
+        <div class="step__label">Step 7 of 7</div>
+        <div class="step__question">Review your details</div>
+        <div class="review-list" id="reviewList"></div>
+        <div class="error" id="errorSubmit"></div>
+        <div class="btn-row">
+          <button class="btn btn--back" id="backBtn6">Back</button>
+          <button class="btn btn--next" id="submitBtn">Check In Now</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="success-message" id="successMessage">
@@ -373,6 +532,9 @@
 
   <script>
     const API_URL = window.location.origin;
+    const TOTAL_STEPS = 7;
+    let currentStep = 0;
+    let direction = 'forward';
 
     const countries = [
       'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua and Barbuda',
@@ -407,214 +569,275 @@
       'Zimbabwe'
     ];
 
-    const form = document.getElementById('checkinForm');
+    // Populate country datalist
+    const countryListEl = document.getElementById('countryList');
+    countries.forEach((c) => {
+      const opt = document.createElement('option');
+      opt.value = c;
+      countryListEl.appendChild(opt);
+    });
+
+    // Elements
+    const nameInput = document.getElementById('name');
     const birthdayInput = document.getElementById('birthday');
     const ageDisplay = document.getElementById('ageDisplay');
     const countryInput = document.getElementById('country');
-    const submitBtn = document.getElementById('submitBtn');
-    const errorMsg = document.getElementById('errorMsg');
-    const successMessage = document.getElementById('successMessage');
-    const tokenDisplay = document.getElementById('tokenDisplay');
-    const detailsInput = document.getElementById('details');
-    const countryListEl = document.getElementById('countryList');
     const phoneInput = document.getElementById('phone');
     const sexSelect = document.getElementById('sex');
-    const nameInput = document.getElementById('name');
+    const detailsInput = document.getElementById('details');
+    const reviewList = document.getElementById('reviewList');
+    const successMessage = document.getElementById('successMessage');
+    const tokenDisplay = document.getElementById('tokenDisplay');
 
-    countries.forEach((country) => {
-      const option = document.createElement('option');
-      option.value = country;
-      countryListEl.appendChild(option);
-    });
+    // Navigation
+    function goToStep(step) {
+      const allSteps = document.querySelectorAll('.step');
+      allSteps.forEach((s) => s.classList.remove('active', 'slide-back'));
 
-    function formatIsoDate(year, month, day) {
-      const yyyy = String(year).padStart(4, '0');
-      const mm = String(month).padStart(2, '0');
-      const dd = String(day).padStart(2, '0');
-      return `${yyyy}-${mm}-${dd}`;
+      const target = document.querySelector(`.step[data-step="${step}"]`);
+      target.classList.add('active');
+      if (direction === 'back') {
+        target.classList.add('slide-back');
+      }
+
+      // Update progress
+      const dots = document.querySelectorAll('.progress__dot');
+      dots.forEach((dot, i) => {
+        dot.classList.remove('active', 'completed');
+        if (i < step) dot.classList.add('completed');
+        if (i === step) dot.classList.add('active');
+      });
+
+      currentStep = step;
+
+      // Focus the input in the new step
+      const input = target.querySelector('input, select, textarea');
+      if (input) setTimeout(() => input.focus(), 100);
     }
 
+    function next() {
+      direction = 'forward';
+      goToStep(currentStep + 1);
+    }
+
+    function back() {
+      direction = 'back';
+      goToStep(currentStep - 1);
+    }
+
+    function showError(id, msg) {
+      const el = document.getElementById(id);
+      el.textContent = msg;
+      el.classList.add('show');
+    }
+
+    function clearError(id) {
+      const el = document.getElementById(id);
+      el.textContent = '';
+      el.classList.remove('show');
+    }
+
+    // Date helpers
     function parseDateInput(value) {
       const trimmed = (value || '').trim();
-      if (!trimmed) {
-        return null;
-      }
+      if (!trimmed) return null;
 
       const isoMatch = trimmed.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
       if (isoMatch) {
-        const year = Number(isoMatch[1]);
-        const month = Number(isoMatch[2]) - 1;
-        const day = Number(isoMatch[3]);
+        const year = Number(isoMatch[1]), month = Number(isoMatch[2]) - 1, day = Number(isoMatch[3]);
         const candidate = new Date(year, month, day);
-        if (
-          candidate.getFullYear() === year &&
-          candidate.getMonth() === month &&
-          candidate.getDate() === day
-        ) {
-          return candidate;
-        }
+        if (candidate.getFullYear() === year && candidate.getMonth() === month && candidate.getDate() === day) return candidate;
         return null;
       }
 
       const digitsMatch = trimmed.match(/^(\d{4})(\d{2})(\d{2})$/);
       if (digitsMatch) {
-        const year = Number(digitsMatch[1]);
-        const month = Number(digitsMatch[2]) - 1;
-        const day = Number(digitsMatch[3]);
+        const year = Number(digitsMatch[1]), month = Number(digitsMatch[2]) - 1, day = Number(digitsMatch[3]);
         const candidate = new Date(year, month, day);
-        if (
-          candidate.getFullYear() === year &&
-          candidate.getMonth() === month &&
-          candidate.getDate() === day
-        ) {
-          return candidate;
-        }
+        if (candidate.getFullYear() === year && candidate.getMonth() === month && candidate.getDate() === day) return candidate;
         return null;
       }
 
       const parsed = new Date(trimmed);
-      if (Number.isNaN(parsed.getTime())) {
-        return null;
-      }
-      return parsed;
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
     }
 
     function calculateAge(dateValue) {
       const birthday = parseDateInput(dateValue);
-      if (!birthday) {
-        return null;
-      }
+      if (!birthday) return null;
       const today = new Date();
       let age = today.getFullYear() - birthday.getFullYear();
       const monthDiff = today.getMonth() - birthday.getMonth();
-      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthday.getDate())) {
-        age--;
-      }
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthday.getDate())) age--;
       return age;
+    }
+
+    function formatIsoDate(year, month, day) {
+      return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     }
 
     function updateAgePreview(value) {
       const trimmed = (value || '').trim();
-      let normalizedValue = trimmed;
 
       const digitsMatch = trimmed.match(/^(\d{4})(\d{2})(\d{2})$/);
       if (digitsMatch) {
-        const year = Number(digitsMatch[1]);
-        const month = Number(digitsMatch[2]);
-        const day = Number(digitsMatch[3]);
+        const year = Number(digitsMatch[1]), month = Number(digitsMatch[2]), day = Number(digitsMatch[3]);
         const candidate = parseDateInput(trimmed);
         if (candidate) {
           const formatted = formatIsoDate(year, month, day);
-          normalizedValue = formatted;
-          if (birthdayInput.value !== formatted) {
-            birthdayInput.value = formatted;
-          }
+          if (birthdayInput.value !== formatted) birthdayInput.value = formatted;
         }
       }
 
-      const age = calculateAge(normalizedValue);
+      const age = calculateAge(birthdayInput.value.trim());
       if (!trimmed) {
         ageDisplay.textContent = '';
-        ageDisplay.classList.remove('show');
+        ageDisplay.classList.remove('show', 'error');
         return;
       }
 
       ageDisplay.classList.add('show');
+      ageDisplay.classList.remove('error');
       if (age !== null && age >= 0 && age < 150) {
         ageDisplay.textContent = `Age: ${age} years old`;
-        ageDisplay.style.color = '#667eea';
       } else {
         ageDisplay.textContent = 'Invalid date';
-        ageDisplay.style.color = '#e53e3e';
+        ageDisplay.classList.add('error');
       }
     }
 
-    birthdayInput.addEventListener('input', (event) => {
-      updateAgePreview(event.target.value);
-    });
+    birthdayInput.addEventListener('input', (e) => updateAgePreview(e.target.value));
 
     function normalizeCountry(value) {
       const trimmed = value.trim();
-      if (!trimmed) {
-        return '';
-      }
-      if (trimmed.length <= 3 && /^[a-zA-Z]+$/.test(trimmed)) {
-        return trimmed.toUpperCase();
-      }
-      return trimmed
-        .split(/\s+/)
-        .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-        .join(' ');
+      if (!trimmed) return '';
+      if (trimmed.length <= 3 && /^[a-zA-Z]+$/.test(trimmed)) return trimmed.toUpperCase();
+      return trimmed.split(/\s+/).map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()).join(' ');
     }
 
-    function isValidPhoneNumber(value) {
-      const digits = value.replace(/\D/g, '');
-      return digits.length >= 7 && digits.length <= 15;
+    // Validation per step
+    function validateStep(step) {
+      switch (step) {
+        case 0: {
+          clearError('errorName');
+          if (!nameInput.value.trim()) { showError('errorName', 'Please enter your full name.'); return false; }
+          return true;
+        }
+        case 1: {
+          clearError('errorBirthday');
+          updateAgePreview(birthdayInput.value);
+          const age = calculateAge(birthdayInput.value.trim());
+          if (age === null || age < 0 || age >= 150) { showError('errorBirthday', 'Please enter a valid date of birth.'); return false; }
+          return true;
+        }
+        case 2: {
+          clearError('errorCountry');
+          const normalized = normalizeCountry(countryInput.value);
+          countryInput.value = normalized;
+          if (!normalized) { showError('errorCountry', 'Please enter your country.'); return false; }
+          return true;
+        }
+        case 3: {
+          clearError('errorPhone');
+          const phone = phoneInput.value.trim();
+          if (!phone) { showError('errorPhone', 'Please enter your phone number.'); return false; }
+          const digits = phone.replace(/\D/g, '');
+          if (digits.length < 7 || digits.length > 15) { showError('errorPhone', 'Please enter a valid phone number.'); return false; }
+          return true;
+        }
+        case 4: {
+          clearError('errorSex');
+          if (!sexSelect.value) { showError('errorSex', 'Please select your gender.'); return false; }
+          return true;
+        }
+        case 5:
+          return true; // optional
+        case 6:
+          return true;
+        default:
+          return true;
+      }
     }
 
-    form.addEventListener('submit', async (event) => {
-      event.preventDefault();
+    // Build review
+    function buildReview() {
+      const age = calculateAge(birthdayInput.value.trim());
+      const items = [
+        { label: 'Name', value: nameInput.value.trim() },
+        { label: 'Date of Birth', value: birthdayInput.value.trim() + (age !== null ? ` (${age} yrs)` : '') },
+        { label: 'Country', value: countryInput.value.trim() },
+        { label: 'Phone', value: phoneInput.value.trim() },
+        { label: 'Gender', value: sexSelect.value },
+        { label: 'Symptoms', value: detailsInput.value.trim() || '—' },
+      ];
 
+      reviewList.innerHTML = items.map(item => `
+        <div class="review-item">
+          <span class="review-item__label">${item.label}</span>
+          <span class="review-item__value">${item.value}</span>
+        </div>
+      `).join('');
+    }
+
+    // Next button handlers
+    for (let i = 0; i < TOTAL_STEPS - 1; i++) {
+      const nextBtn = document.getElementById(`nextBtn${i}`);
+      if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+          if (validateStep(i)) {
+            if (i === TOTAL_STEPS - 2) buildReview(); // before review step
+            next();
+          }
+        });
+      }
+    }
+
+    // Back button handlers
+    for (let i = 1; i < TOTAL_STEPS; i++) {
+      const backBtn = document.getElementById(`backBtn${i}`);
+      if (backBtn) {
+        backBtn.addEventListener('click', back);
+      }
+    }
+
+    // Skip button for details
+    const skipBtn5 = document.getElementById('skipBtn5');
+    if (skipBtn5) {
+      skipBtn5.addEventListener('click', () => {
+        detailsInput.value = '';
+        buildReview();
+        next();
+      });
+    }
+
+    // Enter key to go to next step
+    document.querySelectorAll('.step input, .step select').forEach((el) => {
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const step = Number(el.closest('.step').dataset.step);
+          const nextBtn = document.getElementById(`nextBtn${step}`);
+          if (nextBtn) nextBtn.click();
+        }
+      });
+    });
+
+    // Submit
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.addEventListener('click', async () => {
+      clearError('errorSubmit');
       submitBtn.disabled = true;
       submitBtn.textContent = 'Checking In...';
-      errorMsg.classList.remove('show');
 
-      const birthdayRaw = birthdayInput.value;
-      updateAgePreview(birthdayRaw);
-      const normalizedBirthday = birthdayInput.value.trim();
-      const age = calculateAge(normalizedBirthday);
-      if (age === null || age < 0 || age >= 150) {
-        errorMsg.textContent = 'Please enter a valid birth date.';
-        errorMsg.classList.add('show');
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Check In Now';
-        return;
-      }
-
-      const normalizedCountry = normalizeCountry(countryInput.value);
-      countryInput.value = normalizedCountry;
-
-      if (!normalizedCountry) {
-        errorMsg.textContent = 'Please choose your country.';
-        errorMsg.classList.add('show');
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Check In Now';
-        return;
-      }
-
-      const phoneValue = phoneInput.value.trim();
-      if (!phoneValue) {
-        errorMsg.textContent = 'Please enter your phone number.';
-        errorMsg.classList.add('show');
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Check In Now';
-        return;
-      }
-
-      if (!isValidPhoneNumber(phoneValue)) {
-        errorMsg.textContent = 'Please enter a valid phone number.';
-        errorMsg.classList.add('show');
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Check In Now';
-        return;
-      }
-
-      const sexValue = sexSelect.value;
-      if (!sexValue) {
-        errorMsg.textContent = 'Please select your sex.';
-        errorMsg.classList.add('show');
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Check In Now';
-        return;
-      }
+      const age = calculateAge(birthdayInput.value.trim());
 
       const payload = {
         name: nameInput.value.trim(),
         age,
-        country: normalizedCountry,
+        country: countryInput.value.trim(),
         details: detailsInput.value.trim(),
-        phone: phoneValue,
-        sex: sexValue,
+        phone: phoneInput.value.trim(),
+        sex: sexSelect.value,
       };
 
       try {
@@ -634,8 +857,7 @@
         }
       } catch (error) {
         console.error('Check-in error:', error);
-        errorMsg.textContent = 'Check-in failed. Please try again.';
-        errorMsg.classList.add('show');
+        showError('errorSubmit', 'Check-in failed. Please try again.');
         submitBtn.disabled = false;
         submitBtn.textContent = 'Check In Now';
       }
