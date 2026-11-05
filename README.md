@@ -42,7 +42,7 @@ npm run load-test -- --requests 2000 --concurrency 100
 Point it elsewhere with `URL=https://your-app npm run load-test`. Only run it against
 a deployment before the event, then press **Reset day** in admin.
 
-## Run it from a laptop at the venue (recommended)
+## Run it from a laptop at the venue (backup option)
 
 1. Install [Node.js 22](https://nodejs.org) and
    [cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/)
@@ -90,21 +90,51 @@ a deployment before the event, then press **Reset day** in admin.
 - **The data is safe if something stops.** The queue lives in `data/queue.db`, so if the
   laptop or the app restarts, nobody loses their number.
 
-## Deploy to a server instead
+## Deploy on Railway (recommended)
 
-Run exactly **one** instance (SQLite is a local file) on an always-on machine with a
-persistent disk mounted at `/data`. Avoid free tiers that sleep — the first visitor
-after a sleep waits ~30–60 s, which is what made the old Render setup feel slow.
-A `Dockerfile` is included, so any of these work:
+`railway.json` and the `Dockerfile` are already set up: one copy of the app, a health
+check on `/healthz`, and an automatic restart if it crashes.
 
-- **Railway** — New project → Deploy from GitHub repo → add a Volume mounted at `/data`
-  → set `ADMIN_PASSWORD` → Settings → Networking → Generate domain.
-- **Fly.io** — `fly launch` (keep 1 machine), `fly volumes create data --size 1`,
-  mount it at `/data` in `fly.toml`, `fly secrets set ADMIN_PASSWORD=…`, and set
-  `auto_stop_machines = "off"`.
-- **Render** — a paid *Starter* web service (free tier sleeps and has no disk),
-  runtime Docker, add a Disk mounted at `/data`, set `ADMIN_PASSWORD`.
-- **A laptop at the venue** — see the section above.
+1. Push this project to a GitHub repo.
+2. In [Railway](https://railway.com), go to **New Project → Deploy from GitHub repo** and pick the repo.
+3. Right-click the service → **Attach Volume**, and set the mount path to **`/data`**.
+   This is where the queue is saved. Without it, every redeploy wipes the queue.
+4. In **Variables**, add `ADMIN_PASSWORD` = a strong password.
+5. In **Settings → Networking**, click **Generate Domain** (target port 3000). That gives you
+   `https://<name>.up.railway.app`.
+   - **Optional:** add a custom domain there, then set `PUBLIC_URL=https://your.domain/`.
+6. In **Settings → Region**, pick the region closest to the venue.
 
-On the day: open `/admin` on your device and `/display` on the TV (log in once on each),
-print `/poster`, and you're running. Export the CSV at the end.
+**Check before the event**
+- `https://<your-app>/healthz` shows `ok`.
+- Run the load test against it:
+
+  ```bash
+  URL=https://<your-app> npm run load-test -- --requests 2000 --concurrency 100
+  ```
+
+- Afterwards, open admin and press **Reset day** so numbering starts at 1 again.
+- Print `/poster`. The link never changes, so you can print it days ahead.
+
+**On the day**
+- Open `/admin` on your phone or laptop and `/display` on the TV. Log in once on each.
+- **Don't redeploy during the event.** A service with a volume restarts on deploy, which
+  means a few seconds of downtime. Phones retry automatically, and the screens reconnect
+  on their own.
+- At the end, use **Menu → Export CSV**.
+
+## Other ways to host
+
+Whatever you use, run exactly **one** copy of the app (SQLite is a local file), on an always-on
+machine with a persistent disk mounted at `/data`. Avoid free tiers that sleep.
+
+- **Fly.io:**
+  - Run `fly launch` and keep it to 1 machine.
+  - Create a volume with `fly volumes create data --size 1` and mount it at `/data` in `fly.toml`.
+  - Set the password with `fly secrets set ADMIN_PASSWORD=…`.
+  - Set `auto_stop_machines = "off"` so it never sleeps.
+- **Render:** a paid *Starter* web service (the free tier sleeps and has no disk).
+  - Choose the Docker runtime.
+  - Add a Disk mounted at `/data`.
+  - Set `ADMIN_PASSWORD`.
+- **A laptop at the venue:** see `npm run venue` above. This is a good backup plan.
