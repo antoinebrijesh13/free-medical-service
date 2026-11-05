@@ -6,7 +6,7 @@ A minimal, fast patient queue for a one-day free medical camp.
 |---|---|---|
 | `/` | Patients (phones, via QR code) | Name, age, country, reason (optional) → get a number. The page then shows how many people are ahead and alerts when it's their turn. |
 | `/admin` | You | Full control: call next, edit, reorder, move back to queue, delete, add people, search, export CSV, reset. |
-| `/display` | TV in the waiting room | Who is being served (number + name) and how many are waiting. Chimes on each new call. |
+| `/display` | TV in the waiting room | Who is being served (number + name) and how many are waiting. |
 | `/poster` | Print once | A4 poster with the QR code to the check-in page. |
 
 One Node process with a local SQLite file — no external database, so every request

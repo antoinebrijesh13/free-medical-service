@@ -85,7 +85,6 @@
   .waiting .count { font-size: 7vh; line-height: 1; font-weight: 700; font-variant-numeric: tabular-nums; }
   .clock { font-size: 5vh; line-height: 1; font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
 
-  .hint { margin: 0; font-size: 1.8vh; color: var(--muted); }
 
   .conn {
     position: fixed; top: 1.2vh; right: 1.2vw;
@@ -128,7 +127,6 @@
       <span class="label">Waiting</span>
       <span class="count" id="waiting">0</span>
     </div>
-    <p class="hint" id="sound-hint">Click anywhere to enable sound</p>
     <div class="clock" id="clock" aria-label="Time"></div>
   </footer>
 </div>
@@ -149,7 +147,6 @@
 
   var es = null;
   var known = null;          // numbers in serving after the last event (null = no event yet)
-  var audio = null;
   var reconnectTimer = null;
 
   // ---- clock ---------------------------------------------------------------
@@ -160,42 +157,6 @@
   }
   tick();
   setInterval(tick, 5000);
-
-  // ---- sound ---------------------------------------------------------------
-  document.addEventListener('click', function () {
-    var Ctx = window.AudioContext || window.webkitAudioContext;
-    if (!Ctx) { $('sound-hint').classList.add('hidden'); return; }
-    try {
-      if (!audio) audio = new Ctx();
-      if (audio.resume) audio.resume();
-      $('sound-hint').classList.add('hidden');
-    } catch (e) {}
-  });
-
-  function tone(freq, start, dur) {
-    var t = audio.currentTime + start;
-    var osc = audio.createOscillator();
-    var gain = audio.createGain();
-    osc.type = 'sine';
-    osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.0001, t);
-    gain.gain.exponentialRampToValueAtTime(0.35, t + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    osc.connect(gain);
-    gain.connect(audio.destination);
-    osc.start(t);
-    osc.stop(t + dur + 0.05);
-  }
-
-  function chime() {
-    if (!audio || audio.state !== 'running') return;
-    try {
-      tone(784, 0, 1.1);      // G5
-      tone(1568, 0, 0.5);     // soft overtone
-      tone(659.25, 0.38, 1.5); // E5
-      tone(1318.5, 0.38, 0.6);
-    } catch (e) {}
-  }
 
   // ---- fullscreen ----------------------------------------------------------
   document.addEventListener('dblclick', function () {
@@ -245,10 +206,9 @@
     var fresh = {};
     var isFirst = known === null;
     var next = {};
-    var anyNew = false;
     serving.forEach(function (p) {
       next[p.number] = true;
-      if (!isFirst && !known[p.number]) { fresh[p.number] = true; anyNew = true; }
+      if (!isFirst && !known[p.number]) fresh[p.number] = true;
     });
     known = next;
 
@@ -273,7 +233,6 @@
 
     $('waiting').textContent = String((data && data.waiting) || 0);
 
-    if (anyNew) chime();
   }
 
   // ---- live connection -----------------------------------------------------
