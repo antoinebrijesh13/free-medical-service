@@ -21,7 +21,8 @@
 
   .screen { display: flex; flex-direction: column; height: 100%; }
 
-  .stage { flex: 1 1 auto; min-height: 0; display: flex; padding: 3vh 2.5vw 2vh; }
+  .stage { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; padding: 3vh 2.5vw 2vh; }
+  .notice { flex: 0 0 auto; margin: 0 0 2.5vh; font-size: 4.2vh; font-weight: 600; line-height: 1.2; text-align: center; }
   .grid { flex: 1 1 auto; min-height: 0; display: grid; gap: var(--gap, 16px); align-content: start; }
   .card {
     min-width: 0;
@@ -117,6 +118,7 @@
 
 <div id="screen" class="screen hidden">
   <main class="stage">
+    <p class="notice hidden" id="notice">If your number is on screen, please move to the check-up</p>
     <div class="grid" id="grid" aria-live="polite"></div>
     <div class="empty hidden" id="empty">Please wait &mdash; we&rsquo;ll call you soon</div>
   </main>
@@ -227,6 +229,7 @@
     });
     grid.classList.toggle('hidden', serving.length === 0);
     empty.classList.toggle('hidden', serving.length !== 0);
+    $('notice').classList.toggle('hidden', serving.length === 0);
     lastCount = serving.length;
     if (data && data.maxServing > 0) slots = data.maxServing;
     layout();
