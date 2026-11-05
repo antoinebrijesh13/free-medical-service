@@ -243,6 +243,8 @@
   .dlg-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
   dialog .field { margin-bottom: 14px; }
   dialog textarea { min-height: 72px; }
+  dialog .error { margin: -4px 0 10px; }
+  .btn-danger-solid, .btn-danger-solid:hover { background: var(--danger); border-color: var(--danger); color: #fff; }
 
   /* ---------- toast ---------- */
   .toast {
@@ -482,7 +484,7 @@
     <div id="rErr" class="error" role="alert"></div>
     <div class="dlg-actions">
       <button class="btn" type="button" data-close>Cancel</button>
-      <button id="rGo" class="btn btn-primary" type="submit" disabled style="background:var(--danger);border-color:var(--danger);color:#fff">Reset day</button>
+      <button id="rGo" class="btn btn-danger-solid" type="submit" disabled>Reset day</button>
     </div>
   </form>
 </dialog>
