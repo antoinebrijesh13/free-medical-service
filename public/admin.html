@@ -240,10 +240,11 @@
   dialog h2 { font-size: 19px; margin-bottom: 18px; }
   dialog p { margin: -8px 0 18px; font-size: 15px; }
   .grid2 { display: grid; grid-template-columns: 96px 1fr; gap: 0 12px; }
-  .dlg-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+  .dlg-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
   dialog .field { margin-bottom: 14px; }
   dialog textarea { min-height: 72px; }
-  dialog .error { margin: -4px 0 10px; }
+  dialog .error { margin: -4px 0 12px; }
+  dialog .error:empty { min-height: 0; margin: 0; }
   .btn-danger-solid, .btn-danger-solid:hover { background: var(--danger); border-color: var(--danger); color: #fff; }
 
   /* ---------- toast ---------- */
