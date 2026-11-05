@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0e1113" media="(prefers-color-scheme: dark)">
+<title>Check in</title>
+<link rel="stylesheet" href="/style.css">
+<style>
+  .wrap { padding-top: 40px; padding-bottom: 48px; }
+  .lead { margin: 8px 0 28px; }
+  .opt { font-weight: 400; color: var(--muted); }
+  .field .error { min-height: 0; margin: 6px 0 0; }
+  .field .error:empty { display: none; }
+  .field [aria-invalid="true"], .field [aria-invalid="true"]:focus { border-color: var(--danger); }
+  #form-error:empty { display: none; }
+  #form-error { margin: 0 0 14px; }
+  #submit { margin-top: 6px; }
+
+  #ticket { text-align: center; padding-top: 8vh; }
+  .t-label { margin: 0; font-size: 15px; font-weight: 550; color: var(--muted); }
+  .t-number {
+    margin: 4px 0 0;
+    font-size: 132px;
+    font-size: clamp(104px, 38vw, 168px);
+    line-height: 1;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .t-name { margin: 12px 0 0; font-size: 20px; font-weight: 550; overflow-wrap: anywhere; }
+  .t-status {
+    margin: 36px 0 0;
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    font-size: 19px;
+    font-weight: 600;
+    min-height: 62px;
+  }
+  .t-status.is-serving {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-fg);
+    font-size: 21px;
+    animation: pop .5s ease-out;
+  }
+  .t-status.is-done { color: var(--muted); font-weight: 550; }
+  .t-status.is-unknown { color: var(--muted); font-weight: 400; }
+  .t-done .t-number { color: var(--muted); }
+  .t-done .t-note { display: none; }
+  .t-note { margin: 16px 0 0; font-size: 15px; }
+  .link {
+    margin-top: 40px;
+    padding: 8px;
+    font: inherit;
+    font-size: 15px;
+    color: var(--muted);
+    background: none;
+    border: 0;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+  .link:hover { color: var(--fg); }
+  @keyframes pop { from { transform: scale(.96); opacity: .4; } to { transform: none; opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .t-status.is-serving { animation: none; } }
+</style>
+</head>
+<body>
+<main class="wrap">
+
+  <section id="checkin" class="hidden">
+    <h1>Check in</h1>
+    <p class="lead muted">Fill this in to get your number.</p>
+
+    <form id="form" novalidate>
+      <div class="field">
+        <label for="name">Name</label>
+        <input id="name" name="name" type="text" autocomplete="name" maxlength="80" required aria-describedby="name-error">
+        <p class="error" id="name-error" aria-live="polite"></p>
+      </div>
+      <div class="field">
+        <label for="age">Age</label>
+        <input id="age" name="age" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" autocomplete="off" required aria-describedby="age-error">
+        <p class="error" id="age-error" aria-live="polite"></p>
+      </div>
+      <div class="field">
+        <label for="country">Country</label>
+        <input id="country" name="country" type="text" list="countries" maxlength="60" autocomplete="country-name" required aria-describedby="country-error">
+        <datalist id="countries"></datalist>
+        <p class="error" id="country-error" aria-live="polite"></p>
+      </div>
+      <div class="field">
+        <label for="reason">Reason for visit <span class="opt">(optional)</span></label>
+        <textarea id="reason" name="reason" maxlength="300" rows="3" aria-describedby="reason-error"></textarea>
+        <p class="error" id="reason-error" aria-live="polite"></p>
+      </div>
+      <p class="error" id="form-error" role="alert"></p>
+      <button id="submit" class="btn btn-primary btn-block" type="submit">Get my number</button>
+    </form>
+  </section>
+
+  <section id="ticket" class="hidden" aria-labelledby="t-label">
+    <p class="t-label" id="t-label">Your number</p>
+    <p class="t-number" id="t-number"></p>
+    <p class="t-name" id="t-name"></p>
+    <p class="t-status" id="t-status" role="status" aria-live="polite"></p>
+    <p class="t-note muted">Keep this page open, or remember your number.</p>
+    <button type="button" class="link" id="again">Check in someone else</button>
+  </section>
+
+</main>
+<script>
+(function () {
+  'use strict';
+
+  var STORE_KEY = 'queue-ticket';
+  var POLL_MS = 15000;
+  var MAX_RETRIES = 3;
+
+  var COUNTRIES = ['Afghanistan','Albania','Algeria','Andorra','Angola','Antigua and Barbuda','Argentina','Armenia','Australia','Austria','Azerbaijan','Bahamas','Bahrain','Bangladesh','Barbados','Belarus','Belgium','Belize','Benin','Bhutan','Bolivia','Bosnia and Herzegovina','Botswana','Brazil','Brunei','Bulgaria','Burkina Faso','Burundi','Cabo Verde','Cambodia','Cameroon','Canada','Central African Republic','Chad','Chile','China','Colombia','Comoros','Congo','Costa Rica',"Côte d'Ivoire",'Croatia','Cuba','Cyprus','Czechia','Democratic Republic of the Congo','Denmark','Djibouti','Dominica','Dominican Republic','Ecuador','Egypt','El Salvador','Equatorial Guinea','Eritrea','Estonia','Eswatini','Ethiopia','Fiji','Finland','France','Gabon','Gambia','Georgia','Germany','Ghana','Greece','Grenada','Guatemala','Guinea','Guinea-Bissau','Guyana','Haiti','Honduras','Hong Kong','Hungary','Iceland','India','Indonesia','Iran','Iraq','Ireland','Israel','Italy','Jamaica','Japan','Jordan','Kazakhstan','Kenya','Kiribati','Kosovo','Kuwait','Kyrgyzstan','Laos','Latvia','Lebanon','Lesotho','Liberia','Libya','Liechtenstein','Lithuania','Luxembourg','Macau','Madagascar','Malawi','Malaysia','Maldives','Mali','Malta','Marshall Islands','Mauritania','Mauritius','Mexico','Micronesia','Moldova','Monaco','Mongolia','Montenegro','Morocco','Mozambique','Myanmar','Namibia','Nauru','Nepal','Netherlands','New Zealand','Nicaragua','Niger','Nigeria','North Korea','North Macedonia','Norway','Oman','Pakistan','Palau','Palestine','Panama','Papua New Guinea','Paraguay','Peru','Philippines','Poland','Portugal','Puerto Rico','Qatar','Romania','Russia','Rwanda','Saint Kitts and Nevis','Saint Lucia','Saint Vincent and the Grenadines','Samoa','San Marino','São Tomé and Príncipe','Saudi Arabia','Senegal','Serbia','Seychelles','Sierra Leone','Singapore','Slovakia','Slovenia','Solomon Islands','Somalia','South Africa','South Korea','South Sudan','Spain','Sri Lanka','Sudan','Suriname','Sweden','Switzerland','Syria','Taiwan','Tajikistan','Tanzania','Thailand','Timor-Leste','Togo','Tonga','Trinidad and Tobago','Tunisia','Turkey','Turkmenistan','Tuvalu','Uganda','Ukraine','United Arab Emirates','United Kingdom','United States','Uruguay','Uzbekistan','Vanuatu','Vatican City','Venezuela','Vietnam','Western Sahara','Yemen','Zambia','Zimbabwe'];
+
+  function $(id) { return document.getElementById(id); }
+
+  var checkinView = $('checkin');
+  var ticketView = $('ticket');
+  var form = $('form');
+  var submitBtn = $('submit');
+  var formError = $('form-error');
+  var fields = { name: $('name'), age: $('age'), country: $('country'), reason: $('reason') };
+
+  var clientId = null;      // one per form attempt, reused on retries
+  var submitting = false;
+  var ticket = null;        // {number, name}
+  var lastStatus = null;
+  var pollTimer = null;
+
+  // ---- country list --------------------------------------------------------
+  (function () {
+    var list = $('countries');
+    var frag = document.createDocumentFragment();
+    for (var i = 0; i < COUNTRIES.length; i++) {
+      var o = document.createElement('option');
+      o.value = COUNTRIES[i];
+      frag.appendChild(o);
+    }
+    list.appendChild(frag);
+  })();
+
+  // ---- helpers -------------------------------------------------------------
+  function uuid() {
+    try {
+      if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+    } catch (e) {}
+    var b = new Array(16), i;
+    try {
+      var r = new Uint8Array(16);
+      window.crypto.getRandomValues(r);
+      for (i = 0; i < 16; i++) b[i] = r[i];
+    } catch (e) {
+      for (i = 0; i < 16; i++) b[i] = Math.floor(Math.random() * 256);
+    }
+    b[6] = (b[6] & 0x0f) | 0x40;
+    b[8] = (b[8] & 0x3f) | 0x80;
+    var h = '';
+    for (i = 0; i < 16; i++) {
+      h += (b[i] + 0x100).toString(16).slice(1);
+      if (i === 3 || i === 5 || i === 7 || i === 9) h += '-';
+    }
+    return h;
+  }
+
+  function load() {
+    try {
+      var t = JSON.parse(localStorage.getItem(STORE_KEY));
+      if (t && typeof t.number === 'number') return t;
+    } catch (e) {}
+    return null;
+  }
+  function save(t) { try { localStorage.setItem(STORE_KEY, JSON.stringify(t)); } catch (e) {} }
+  function clear() { try { localStorage.removeItem(STORE_KEY); } catch (e) {} }
+
+  function wait(ms) { return new Promise(function (res) { setTimeout(res, ms); }); }
+
+  // fetch with a timeout where AbortController exists
+  function request(url, opts) {
+    opts = opts || {};
+    var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+    var timer = null;
+    if (ctrl) {
+      opts.signal = ctrl.signal;
+      timer = setTimeout(function () { ctrl.abort(); }, 15000);
+    }
+    opts.credentials = 'same-origin';
+    return fetch(url, opts).then(function (res) {
+      if (timer) clearTimeout(timer);
+      return res.json().catch(function () { return {}; }).then(function (body) {
+        return { status: res.status, body: body };
+      });
+    }, function (err) {
+      if (timer) clearTimeout(timer);
+      throw err;
+    });
+  }
+
+  // ---- validation ----------------------------------------------------------
+  function setFieldError(key, msg) {
+    var el = fields[key];
+    $(key + '-error').textContent = msg || '';
+    if (msg) el.setAttribute('aria-invalid', 'true');
+    else el.removeAttribute('aria-invalid');
+  }
+
+  function validate() {
+    var v = {
+      name: fields.name.value.trim(),
+      age: fields.age.value.trim(),
+      country: fields.country.value.trim(),
+      reason: fields.reason.value.trim()
+    };
+    var errors = {};
+    if (!v.name) errors.name = 'Please enter your name.';
+    else if (v.name.length > 80) errors.name = 'Please keep the name under 80 characters.';
+    if (!v.age) errors.age = 'Please enter your age.';
+    else if (!/^\d{1,3}$/.test(v.age) || +v.age > 130) errors.age = 'Please enter an age from 0 to 130.';
+    if (!v.country) errors.country = 'Please enter your country.';
+    else if (v.country.length > 60) errors.country = 'Please keep the country under 60 characters.';
+    if (v.reason.length > 300) errors.reason = 'Please keep this under 300 characters.';
+
+    var first = null;
+    ['name', 'age', 'country', 'reason'].forEach(function (k) {
+      setFieldError(k, errors[k]);
+      if (errors[k] && !first) first = k;
+    });
+    if (first) { fields[first].focus(); return null; }
+    return v;
+  }
+
+  Object.keys(fields).forEach(function (k) {
+    fields[k].addEventListener('input', function () {
+      if (fields[k].getAttribute('aria-invalid')) setFieldError(k, '');
+    });
+  });
+
+  // ---- submit --------------------------------------------------------------
+  function setBusy(busy) {
+    submitting = busy;
+    submitBtn.disabled = busy;
+    submitBtn.textContent = busy ? 'Please wait…' : 'Get my number';
+  }
+
+  function sendCheckin(payload, attempt) {
+    return request('/api/checkin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(function (r) {
+      if (r.status >= 500 || r.status === 429) throw { retry: true };
+      return r;
+    }).catch(function (err) {
+      if (attempt >= MAX_RETRIES) throw err;
+      var delay = 1000 * Math.pow(2, attempt) + Math.floor(Math.random() * 400);
+      return wait(delay).then(function () { return sendCheckin(payload, attempt + 1); });
+    });
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (submitting) return;
+    formError.textContent = '';
+    var v = validate();
+    if (!v) return;
+    if (!clientId) clientId = uuid();
+
+    setBusy(true);
+    sendCheckin({ name: v.name, age: +v.age, country: v.country, reason: v.reason, clientId: clientId }, 0)
+      .then(function (r) {
+        setBusy(false);
+        if ((r.status === 200 || r.status === 201) && r.body && typeof r.body.number === 'number') {
+          clientId = null;
+          ticket = { number: r.body.number, name: v.name };
+          save(ticket);
+          showTicket();
+          renderStatus(r.body);
+          schedulePoll();
+        } else {
+          formError.textContent = (r.body && r.body.error) || 'Something went wrong. Please try again.';
+        }
+      }, function () {
+        setBusy(false);
+        formError.textContent = 'Could not reach the server. Check your connection and try again.';
+      });
+  });
+
+  // ---- ticket view ---------------------------------------------------------
+  function showForm() {
+    stopPoll();
+    ticket = null;
+    lastStatus = null;
+    form.reset();
+    ['name', 'age', 'country', 'reason'].forEach(function (k) { setFieldError(k, ''); });
+    formError.textContent = '';
+    clientId = null;
+    ticketView.classList.add('hidden');
+    checkinView.classList.remove('hidden');
+  }
+
+  function showTicket() {
+    $('t-number').textContent = String(ticket.number);
+    $('t-name').textContent = ticket.name || '';
+    checkinView.classList.add('hidden');
+    ticketView.classList.remove('hidden');
+    window.scrollTo(0, 0);
+  }
+
+  function renderStatus(t) {
+    var el = $('t-status');
+    var text, cls = '';
+    if (t.status === 'serving') {
+      text = 'It’s your turn — please go to the desk';
+      cls = 'is-serving';
+    } else if (t.status === 'done') {
+      text = 'Done — thank you';
+      cls = 'is-done';
+    } else if (t.status === 'waiting') {
+      var n = typeof t.ahead === 'number' ? t.ahead : 0;
+      text = n === 0 ? 'You’re next' : n === 1 ? '1 person ahead of you' : n + ' people ahead of you';
+    } else {
+      text = 'Checking…';
+      cls = 'is-unknown';
+    }
+    if (el.textContent !== text) el.textContent = text;
+    el.className = 't-status' + (cls ? ' ' + cls : '');
+    ticketView.classList.toggle('t-done', t.status === 'done');
+
+    if (t.status === 'serving' && lastStatus !== 'serving') {
+      try { if (navigator.vibrate) navigator.vibrate([300, 150, 300]); } catch (e) {}
+    }
+    if (t.status) lastStatus = t.status;
+  }
+
+  // ---- polling -------------------------------------------------------------
+  function stopPoll() { if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; } }
+
+  function schedulePoll() {
+    stopPoll();
+    if (ticket && !document.hidden) pollTimer = setTimeout(poll, POLL_MS);
+  }
+
+  function poll() {
+    stopPoll();
+    if (!ticket) return;
+    var current = ticket.number;
+    request('/api/ticket/' + encodeURIComponent(current)).then(function (r) {
+      if (!ticket || ticket.number !== current) return;
+      if (r.status === 404) { clear(); showForm(); return; }
+      if (r.status === 200 && r.body) renderStatus(r.body);
+      schedulePoll();
+    }, function () {
+      schedulePoll(); // offline: keep showing what we have
+    });
+  }
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) stopPoll();
+    else if (ticket) poll();
+  });
+
+  $('again').addEventListener('click', function () {
+    if (ticket && lastStatus !== 'done' &&
+        !window.confirm('Your number is ' + ticket.number + '. Start a new check-in for someone else?')) return;
+    clear();
+    showForm();
+    fields.name.focus();
+  });
+
+  // ---- start ---------------------------------------------------------------
+  ticket = load();
+  if (ticket) {
+    showTicket();
+    renderStatus({});
+    poll();
+  } else {
+    showForm();
+  }
+})();
+</script>
+</body>
+</html>
