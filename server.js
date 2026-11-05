@@ -34,6 +34,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value);
   CREATE INDEX IF NOT EXISTS patients_status_position ON patients (status, position);
   INSERT OR IGNORE INTO meta (key, value) VALUES ('next_number', 1);
+  INSERT OR IGNORE INTO meta (key, value) VALUES ('max_serving', 20);
 `);
 
 const COLS = 'id, number, name, age, country, reason, status, position, created_at, called_at, done_at';
@@ -55,6 +56,11 @@ const q = {
   all: db.prepare(`SELECT ${COLS} FROM patients ORDER BY number ASC`),
   getNext: db.prepare(`SELECT value FROM meta WHERE key = 'next_number'`),
   setNext: db.prepare(`UPDATE meta SET value = ? WHERE key = 'next_number'`),
+  getMax: db.prepare(`SELECT value FROM meta WHERE key = 'max_serving'`),
+  setMax: db.prepare(`UPDATE meta SET value = ? WHERE key = 'max_serving'`),
+  servingCount: db.prepare(`SELECT COUNT(*) AS n FROM patients WHERE status = 'serving'`),
+  finishOldest: db.prepare(`UPDATE patients SET status = 'done', done_at = ? WHERE id IN
+    (SELECT id FROM patients WHERE status = 'serving' ORDER BY called_at ASC, id ASC LIMIT ?)`),
   insert: db.prepare(`INSERT INTO patients (number, name, age, country, reason, status, position, client_id, created_at)
     VALUES (@number, @name, @age, @country, @reason, 'waiting', @position, @client_id, @created_at)`),
   update: db.prepare(`UPDATE patients SET name = @name, age = @age, country = @country, reason = @reason,
@@ -68,6 +74,13 @@ const q = {
 
 const ticketOf = (p) => ({ number: p.number, status: p.status, ahead: p.status === 'waiting' ? q.ahead.get(p.position).n : null });
 const endPos = () => (q.maxPos.get().p ?? 0) + 1;
+const MAX_SERVING_LIMIT = 30;
+const maxServing = () => Number(q.getMax.get().value);
+// Screen limit: before calling `slots` more people, finish the longest-serving ones so we never exceed it.
+const makeRoom = (slots, now) => {
+  const extra = q.servingCount.get().n + slots - maxServing();
+  if (extra > 0) q.finishOldest.run(now, extra);
+};
 
 const createPatient = db.transaction((data, clientId) => {
   const number = Number(q.getNext.get().value);
@@ -80,7 +93,7 @@ const updatePatient = db.transaction((p, changes) => {
   const next = { ...p, ...changes };
   if (changes.status && changes.status !== p.status) {
     const now = Date.now();
-    if (next.status === 'serving') Object.assign(next, { called_at: now, done_at: null });
+    if (next.status === 'serving') { makeRoom(1, now); Object.assign(next, { called_at: now, done_at: null }); }
     else if (next.status === 'done') next.done_at = now;
     else Object.assign(next, { called_at: null, done_at: null, position: (q.minPos.get(p.id).p ?? 1) - 1 });
   }
@@ -101,7 +114,9 @@ const movePatient = db.transaction((p, to) => {
 const callNext = db.transaction((count, finish) => {
   const now = Date.now();
   if (finish) q.finishServing.run(now);
-  return q.firstWaiting.all(count).map((p) => { q.callOne.run(now, p.id); return q.byId.get(p.id); });
+  const toCall = q.firstWaiting.all(Math.min(count, maxServing()));
+  makeRoom(toCall.length, now);
+  return toCall.map((p) => { q.callOne.run(now, p.id); return q.byId.get(p.id); });
 });
 
 const resetAll = db.transaction(() => { q.delAll.run(); q.setNext.run(1); });
@@ -109,10 +124,12 @@ const resetAll = db.transaction(() => { q.delAll.run(); q.setNext.run(1); });
 const getState = () => {
   const serving = q.serving.all(), waiting = q.waiting.all(), done = q.done.all();
   const counts = { waiting: waiting.length, serving: serving.length, done: done.length };
-  return { serving, waiting, done, counts: { ...counts, total: waiting.length + serving.length + done.length } };
+  return { serving, waiting, done, settings: { maxServing: maxServing() },
+    counts: { ...counts, total: waiting.length + serving.length + done.length } };
 };
 const getDisplay = () => ({
-  serving: q.serving.all().map(({ number, name, called_at }) => ({ number, name, called_at })),
+  maxServing: maxServing(),
+  serving: q.serving.all().slice(-maxServing()).map(({ number, name, called_at }) => ({ number, name, called_at })),
   waiting: q.waitingCount.get().n,
   recent: q.recent.all(),
 });
@@ -267,7 +284,7 @@ app.get('/api/me', (req, res) => res.set('Cache-Control', 'no-store').json({ adm
 // admin API
 app.get('/api/events', requireAdmin, sse(clients.admin, 'state', getState));
 app.get('/api/display/events', requireAdmin, sse(clients.display, 'display', getDisplay));
-app.use(['/api/state', '/api/patients', '/api/next', '/api/export.csv', '/api/reset'], requireAdmin);
+app.use(['/api/state', '/api/patients', '/api/next', '/api/export.csv', '/api/reset', '/api/settings'], requireAdmin);
 
 app.get('/api/state', (req, res) => res.set('Cache-Control', 'no-store').json(getState()));
 
@@ -338,6 +355,14 @@ app.get('/api/export.csv', (req, res) => {
   res.set({ 'Content-Type': 'text/csv; charset=utf-8', 'Cache-Control': 'no-store',
     'Content-Disposition': `attachment; filename="queue-${day}.csv"` });
   res.send('\uFEFF' + rows.map((r) => r.map(csvCell).join(',')).join('\r\n') + '\r\n');
+});
+
+app.put('/api/settings', (req, res) => {
+  const n = toInt((req.body || {}).maxServing);
+  if (n === null || n < 1 || n > MAX_SERVING_LIMIT) return res.status(400).json({ error: `maxServing must be between 1 and ${MAX_SERVING_LIMIT}` });
+  q.setMax.run(n);
+  scheduleBroadcast();
+  res.json({ maxServing: n });
 });
 
 app.post('/api/reset', (req, res) => {
