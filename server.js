@@ -35,6 +35,7 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS patients_status_position ON patients (status, position);
   INSERT OR IGNORE INTO meta (key, value) VALUES ('next_number', 1);
   INSERT OR IGNORE INTO meta (key, value) VALUES ('max_serving', 20);
+  INSERT OR IGNORE INTO meta (key, value) VALUES ('screen_message', '');
 `);
 
 const COLS = 'id, number, name, age, country, reason, status, position, created_at, called_at, done_at';
@@ -57,6 +58,8 @@ const q = {
   getNext: db.prepare(`SELECT value FROM meta WHERE key = 'next_number'`),
   setNext: db.prepare(`UPDATE meta SET value = ? WHERE key = 'next_number'`),
   getMax: db.prepare(`SELECT value FROM meta WHERE key = 'max_serving'`),
+  getMsg: db.prepare(`SELECT value FROM meta WHERE key = 'screen_message'`),
+  setMsg: db.prepare(`UPDATE meta SET value = ? WHERE key = 'screen_message'`),
   setMax: db.prepare(`UPDATE meta SET value = ? WHERE key = 'max_serving'`),
   servingCount: db.prepare(`SELECT COUNT(*) AS n FROM patients WHERE status = 'serving'`),
   finishOldest: db.prepare(`UPDATE patients SET status = 'done', done_at = ? WHERE id IN
@@ -76,6 +79,8 @@ const ticketOf = (p) => ({ number: p.number, status: p.status, ahead: p.status =
 const endPos = () => (q.maxPos.get().p ?? 0) + 1;
 const MAX_SERVING_LIMIT = 30;
 const maxServing = () => Number(q.getMax.get().value);
+const screenMessage = () => String(q.getMsg.get().value || '');
+const MESSAGE_MAX = 200;
 // Screen limit: before calling `slots` more people, finish the longest-serving ones so we never exceed it.
 const makeRoom = (slots, now) => {
   const extra = q.servingCount.get().n + slots - maxServing();
@@ -124,11 +129,12 @@ const resetAll = db.transaction(() => { q.delAll.run(); q.setNext.run(1); });
 const getState = () => {
   const serving = q.serving.all(), waiting = q.waiting.all(), done = q.done.all();
   const counts = { waiting: waiting.length, serving: serving.length, done: done.length };
-  return { serving, waiting, done, settings: { maxServing: maxServing() },
+  return { serving, waiting, done, settings: { maxServing: maxServing(), message: screenMessage() },
     counts: { ...counts, total: waiting.length + serving.length + done.length } };
 };
 const getDisplay = () => ({
   maxServing: maxServing(),
+  message: screenMessage(),
   serving: q.serving.all().slice(-maxServing()).map(({ number, name, called_at }) => ({ number, name, called_at })),
   waiting: q.waitingCount.get().n,
   recent: q.recent.all(),
@@ -360,12 +366,24 @@ app.get('/api/export.csv', (req, res) => {
   res.send('\uFEFF' + rows.map((r) => r.map(csvCell).join(',')).join('\r\n') + '\r\n');
 });
 
+// Body may contain maxServing and/or message (text shown on the TV; '' clears it).
 app.put('/api/settings', (req, res) => {
-  const n = toInt((req.body || {}).maxServing);
-  if (n === null || n < 1 || n > MAX_SERVING_LIMIT) return res.status(400).json({ error: `maxServing must be between 1 and ${MAX_SERVING_LIMIT}` });
-  q.setMax.run(n);
+  const body = req.body || {};
+  let n = null, msg = null;
+  if (body.maxServing !== undefined) {
+    n = toInt(body.maxServing);
+    if (n === null || n < 1 || n > MAX_SERVING_LIMIT) return res.status(400).json({ error: `maxServing must be between 1 and ${MAX_SERVING_LIMIT}` });
+  }
+  if (body.message !== undefined) {
+    if (body.message !== null && typeof body.message !== 'string') return res.status(400).json({ error: 'message must be text' });
+    msg = (body.message || '').replace(/\s+/g, ' ').trim();
+    if (msg.length > MESSAGE_MAX) return res.status(400).json({ error: `Message must be at most ${MESSAGE_MAX} characters` });
+  }
+  if (n === null && msg === null) return res.status(400).json({ error: 'Nothing to update' });
+  if (n !== null) q.setMax.run(n);
+  if (msg !== null) q.setMsg.run(msg);
   scheduleBroadcast();
-  res.json({ maxServing: n });
+  res.json({ maxServing: maxServing(), message: screenMessage() });
 });
 
 app.post('/api/reset', (req, res) => {

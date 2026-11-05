@@ -128,6 +128,12 @@
 
   /* ---------- sections & rows ---------- */
   section { margin-top: 28px; }
+  .msgbar { margin-top: 18px; }
+  .msgbar label { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 650; margin-bottom: 8px; }
+  .msg-live { font-size: 12px; font-weight: 600; color: var(--ok); }
+  .msg-row { display: flex; gap: 8px; }
+  .msg-row input { flex: 1 1 auto; min-width: 0; padding: 10px 12px; }
+  .msg-row .btn { flex: 0 0 auto; }
   .sec-head { display: flex; align-items: baseline; gap: 8px; margin: 0 0 10px; }
   .sec-head h2 { font-size: 15px; }
   .sec-head .n { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -394,6 +400,15 @@
       </div>
     </div>
   </div>
+
+  <form class="msgbar" id="msgForm" autocomplete="off">
+    <label for="msg">Screen message <span class="msg-live hidden" id="msgLive">On the TV now</span></label>
+    <div class="msg-row">
+      <input id="msg" type="text" maxlength="200" placeholder="Type anything to show on the TV" enterkeyhint="send">
+      <button class="btn btn-primary" type="submit" id="msgShow">Show</button>
+      <button class="btn" type="button" id="msgClear" hidden>Clear</button>
+    </div>
+  </form>
 
   <section class="serving" aria-labelledby="hServing">
     <div class="sec-head"><h2 id="hServing">Now serving</h2><span id="nServing" class="n"></span></div>
@@ -715,6 +730,7 @@
     var max = state.settings && state.settings.maxServing;
     ui.cMax.textContent = max ? '\u2009/\u2009' + max : '';
     if (max && document.activeElement !== ui.maxServing) ui.maxServing.value = max;
+    renderMessage();
     ui.cDone.textContent = c.done;
     ui.cTotal.textContent = c.total;
 
@@ -964,6 +980,35 @@
     });
   });
   ui.maxServing.addEventListener('keydown', function (e) { if (e.key === 'Enter') ui.maxServing.blur(); });
+
+  // ---- screen message (shown on the TV) ----
+  var msgInput = $('msg'), msgClear = $('msgClear'), msgLive = $('msgLive'), msgShow = $('msgShow');
+  var msgDirty = false;
+  function renderMessage() {
+    var cur = (state && state.settings && state.settings.message) || '';
+    msgLive.classList.toggle('hidden', !cur);
+    msgClear.hidden = !cur;
+    if (!msgDirty && document.activeElement !== msgInput) msgInput.value = cur;
+  }
+  function sendMessage(text) {
+    msgShow.disabled = msgClear.disabled = true;
+    return api('PUT', '/api/settings', { message: text }).then(function (r) {
+      msgDirty = false;
+      if (state && state.settings) state.settings.message = (r && r.message) || '';
+      msgInput.value = (r && r.message) || '';
+      renderMessage();
+      toast(text ? 'Message shown on the TV' : 'Message cleared');
+    }, fail).then(function () { msgShow.disabled = msgClear.disabled = false; });
+  }
+  msgInput.addEventListener('input', function () { msgDirty = true; });
+  $('msgForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var text = msgInput.value.trim();
+    if (!text) { msgInput.focus(); return; }
+    msgInput.blur();
+    sendMessage(text);
+  });
+  msgClear.addEventListener('click', function () { msgInput.value = ''; sendMessage(''); });
   ui.finish.addEventListener('change', function () { store('admin.finish', ui.finish.checked ? '1' : '0'); });
 
   ui.q.addEventListener('input', function () { query = ui.q.value; scheduleRender(); });
