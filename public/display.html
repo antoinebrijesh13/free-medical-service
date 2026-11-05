@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#111213">
+<meta name="theme-color" content="#0f1c2e">
 <title>Queue display</title>
 <link rel="stylesheet" href="/style.css">
 <style>
   :root {
-    --bg: #111213;
-    --surface: #1c1d1f;
-    --fg: #f4f4f5;
-    --muted: #9b9ca0;
-    --line: #2a2b2e;
+    --bg: #0f1c2e;
+    --surface: #1a2b42;
+    --fg: #ffffff;
+    --muted: #b4c2d4;
+    --line: #253852;
     --warn: #d4a72c;
     color-scheme: dark;
   }
@@ -55,8 +55,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .card.latest { background: #2a2c2f; box-shadow: inset 0 0 0 2px var(--fg); }
-  .card.latest .name { color: var(--fg); }
   .card.flash { animation: flash .6s ease-out; }
   @keyframes flash { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
@@ -199,9 +197,6 @@
 
   function render(data) {
     var serving = ((data && data.serving) || []).slice();
-    var latestAt = 0; // everyone called in the most recent batch gets highlighted
-    serving.forEach(function (p) { if ((p.called_at || 0) > latestAt) latestAt = p.called_at || 0; });
-    var batch = serving.filter(function (p) { return (p.called_at || 0) === latestAt; }).length;
     serving.sort(function (a, b) { return a.number - b.number; });
 
     var fresh = {};
@@ -216,7 +211,7 @@
     grid.textContent = '';
     serving.forEach(function (p) {
       var card = document.createElement('div');
-      card.className = 'card' + (p.called_at === latestAt && batch < serving.length && batch <= 5 ? ' latest' : '') + (fresh[p.number] ? ' flash' : '');
+      card.className = 'card' + (fresh[p.number] ? ' flash' : '');
       var num = document.createElement('div');
       num.className = 'num';
       num.textContent = String(p.number);
