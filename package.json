@@ -9,7 +9,8 @@
   },
   "scripts": {
     "start": "node server.js",
-    "load-test": "node scripts/load-test.js"
+    "load-test": "node scripts/load-test.js",
+    "venue": "node scripts/venue.js"
   },
   "dependencies": {
     "better-sqlite3": "^12.0.0",

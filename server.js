@@ -245,10 +245,13 @@ app.get('/api/ticket/:number', (req, res) => {
   res.set('Cache-Control', 'no-store').json(ticketOf(p));
 });
 
+const checkinUrl = (req) => PUBLIC_URL || `${req.protocol}://${req.get('host')}/`;
+app.get('/api/checkin-url', (req, res) => res.set('Cache-Control', 'no-store').json({ url: checkinUrl(req) }));
+
 const qrCache = new Map();
 app.get('/qr.svg', async (req, res, next) => {
   try {
-    const url = PUBLIC_URL || `${req.protocol}://${req.get('host')}/`;
+    const url = checkinUrl(req);
     let svg = qrCache.get(url);
     if (!svg) {
       svg = await QRCode.toString(url, { type: 'svg', errorCorrectionLevel: 'M', margin: 2 });

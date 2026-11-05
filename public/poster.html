@@ -90,7 +90,10 @@
   </main>
 
 <script>
-  document.getElementById('url').textContent = location.origin.replace(/^https?:\/\//, '') + '/';
+  var urlEl = document.getElementById('url');
+  var show = function (u) { urlEl.textContent = u.replace(/^https?:\/\//, ''); };
+  show(location.origin + '/');
+  fetch('/api/checkin-url').then(function (r) { return r.json(); }).then(function (b) { if (b && b.url) show(b.url); }).catch(function () {});
   document.getElementById('print').addEventListener('click', function () { window.print(); });
 </script>
 </body>
