@@ -4,7 +4,7 @@
   --fg: #111418;
   --muted: #6b7280;
   --line: #e5e7eb;
-  --accent: #0f766e;
+  --accent: #18181b;
   --accent-fg: #ffffff;
   --danger: #b42318;
   --ok: #15803d;
@@ -20,10 +20,10 @@
     --fg: #eef1f3;
     --muted: #9aa3ab;
     --line: #272d32;
-    --accent: #2dd4bf;
-    --accent-fg: #04201d;
+    --accent: #f4f4f5;
+    --accent-fg: #111213;
     --danger: #f97066;
-    --ok: #4ade80;
+    --ok: #7cbf93;
   }
 }
 
