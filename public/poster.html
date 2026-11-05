@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Get your number</title>
+<link rel="stylesheet" href="/style.css">
+<style>
+  /* The poster is always printed light, whatever the screen theme. */
+  :root { color-scheme: light; }
+  @page { size: A4; margin: 0; }
+
+  body { background: var(--surface); }
+  .bar {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+    max-width: 210mm;
+    margin: 0 auto;
+    padding: 20px 16px 16px;
+    font-size: 14px;
+  }
+  .sheet {
+    width: 210mm;
+    max-width: calc(100% - 32px);
+    aspect-ratio: 210 / 297;
+    margin: 0 auto 40px;
+    padding: 22mm 18mm;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: #fff;
+    color: #111418;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .08), 0 12px 40px rgba(0, 0, 0, .08);
+  }
+  h1 { font-size: 64px; font-weight: 750; letter-spacing: -.02em; line-height: 1.05; }
+  .lead { margin: 18px 0 0; font-size: 26px; color: #4b5563; }
+  .qr {
+    display: block;
+    width: 120mm;
+    max-width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+    margin: 14mm auto 12mm;
+  }
+  .or { margin: 0; font-size: 16px; color: #6b7280; }
+  .url { margin: 6px 0 0; font-size: 28px; font-weight: 650; color: #0f766e; word-break: break-all; }
+
+  @media (max-width: 600px) {
+    h1 { font-size: 36px; }
+    .lead { font-size: 17px; }
+    .url { font-size: 18px; }
+    .sheet { padding: 28px 20px; }
+  }
+
+  @media print {
+    html, body { background: #fff; }
+    .bar { display: none; }
+    .sheet {
+      width: 210mm;
+      height: 297mm;
+      max-width: none;
+      margin: 0;
+      border-radius: 0;
+      box-shadow: none;
+      aspect-ratio: auto;
+      page-break-after: avoid;
+      break-after: avoid;
+    }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+  <div class="bar">
+    <span class="muted">A4 &middot; print at 100%</span>
+    <button id="print" class="btn btn-primary" type="button">Print</button>
+  </div>
+
+  <main class="sheet">
+    <h1>Get your number</h1>
+    <p class="lead">Scan with your phone camera</p>
+    <img class="qr" src="/qr.svg" alt="QR code that opens the check-in page">
+    <p class="or">or open</p>
+    <p id="url" class="url"></p>
+  </main>
+
+<script>
+  document.getElementById('url').textContent = location.origin.replace(/^https?:\/\//, '') + '/';
+  document.getElementById('print').addEventListener('click', function () { window.print(); });
+</script>
+</body>
+</html>

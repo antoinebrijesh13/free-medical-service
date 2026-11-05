@@ -1,0 +1,1088 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Queue admin</title>
+<link rel="stylesheet" href="/style.css">
+<style>
+  /* ---------- icons (CSS masks: no extra DOM per row) ---------- */
+  .ib, .icon {
+    --i: none;
+  }
+  .ib::before, .icon::before {
+    content: "";
+    display: block;
+    width: 16px;
+    height: 16px;
+    background: currentColor;
+    -webkit-mask: var(--i) center / contain no-repeat;
+    mask: var(--i) center / contain no-repeat;
+  }
+  .i-up     { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 15l6-6 6 6'/%3E%3C/svg%3E"); }
+  .i-down   { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); }
+  .i-top    { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 4h12M7 15l5-5 5 5M12 10v10'/%3E%3C/svg%3E"); }
+  .i-edit   { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4z'/%3E%3Cpath d='M13.5 6.5l4 4'/%3E%3C/svg%3E"); }
+  .i-del    { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3'/%3E%3C/svg%3E"); }
+  .i-more   { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black'%3E%3Ccircle cx='5' cy='12' r='2'/%3E%3Ccircle cx='12' cy='12' r='2'/%3E%3Ccircle cx='19' cy='12' r='2'/%3E%3C/svg%3E"); }
+  .i-search { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='6.5'/%3E%3Cpath d='M16 16l4.5 4.5'/%3E%3C/svg%3E"); }
+
+  .ib {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: none;
+    color: var(--muted);
+    cursor: pointer;
+    flex: none;
+  }
+  .ib:hover { background: var(--surface); color: var(--fg); border-color: var(--line); }
+  .ib.danger:hover { color: var(--danger); }
+  button:focus-visible, a:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* ---------- login ---------- */
+  .login { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .login form { width: 100%; max-width: 360px; padding: 28px; }
+  .login h1 { font-size: 22px; margin-bottom: 4px; }
+  .login p { margin: 0 0 22px; font-size: 15px; }
+
+  /* ---------- layout ---------- */
+  .app { max-width: 1160px; margin: 0 auto; padding: 0 28px 64px; }
+  .head {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--bg);
+    padding-top: 14px;
+  }
+  .top { display: flex; align-items: center; gap: 24px; padding-bottom: 12px; }
+  .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .brand h1 { font-size: 19px; }
+  .conn { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); white-space: nowrap; }
+  .conn::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .conn[data-s="live"]::before { background: var(--ok); }
+  .conn[data-s="down"]::before { background: var(--danger); }
+
+  .counts { display: flex; gap: 22px; margin: 0 0 0 auto; padding: 0; list-style: none; }
+  .counts li { display: flex; align-items: baseline; gap: 6px; font-size: 13px; color: var(--muted); }
+  .counts b { font-size: 17px; color: var(--fg); font-weight: 650; font-variant-numeric: tabular-nums; }
+  .top-actions { display: flex; gap: 8px; }
+  .top-actions .btn { padding: 8px 14px; font-size: 15px; }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 0 14px;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .callbar { display: flex; align-items: center; gap: 14px; }
+  #next { padding: 11px 20px; font-size: 17px; min-width: 156px; }
+  #next kbd {
+    font: 600 11px/1 var(--font);
+    padding: 3px 5px;
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--accent-fg) 20%, transparent);
+  }
+  .stepper { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 10px; height: 46px; }
+  .stepper button {
+    width: 34px; height: 100%;
+    border: 0; background: none; color: var(--fg);
+    font: 500 19px/1 var(--font);
+    cursor: pointer;
+  }
+  .stepper button:hover { color: var(--accent); }
+  .stepper input {
+    width: 34px; height: 100%;
+    padding: 0; border: 0; border-radius: 0;
+    text-align: center; font-weight: 600;
+    background: none;
+    -moz-appearance: textfield; appearance: textfield;
+  }
+  .stepper input:focus { box-shadow: none; }
+  .stepper:focus-within { border-color: var(--accent); }
+  .stepper input::-webkit-inner-spin-button, .stepper input::-webkit-outer-spin-button,
+  .limit input::-webkit-inner-spin-button, .limit input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .check { display: inline-flex; align-items: center; gap: 8px; margin: 0; font-size: 14px; font-weight: 500; white-space: nowrap; cursor: pointer; user-select: none; }
+  .opts { display: flex; align-items: center; gap: 18px; }
+  .limit { display: inline-flex; align-items: center; gap: 8px; margin: 0; font-size: 14px; font-weight: 500; color: var(--muted); white-space: nowrap; }
+  .limit input { width: 52px; padding: 6px 8px; -moz-appearance: textfield; appearance: textfield; text-align: center; font-size: 15px; font-weight: 600; border-radius: 8px; }
+  .counts .of { font-size: 13px; font-weight: 500; color: var(--muted); margin-left: 1px; }
+  .check input { width: 18px; height: 18px; padding: 0; margin: 0; accent-color: var(--accent); cursor: pointer; }
+
+  .search { position: relative; margin-left: auto; width: 300px; }
+  .search .icon { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+  .search input { padding: 10px 14px 10px 38px; background: var(--surface); border-color: transparent; }
+  .search input:focus { background: var(--bg); }
+  .search input::-webkit-search-cancel-button { cursor: pointer; }
+
+  /* ---------- sections & rows ---------- */
+  section { margin-top: 28px; }
+  .sec-head { display: flex; align-items: baseline; gap: 8px; margin: 0 0 10px; }
+  .sec-head h2 { font-size: 15px; }
+  .sec-head .n { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  .table { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .row {
+    display: grid;
+    align-items: center;
+    gap: 14px;
+    padding: 8px 10px 8px 16px;
+    min-height: 52px;
+    border-top: 1px solid var(--line);
+  }
+  .colhead {
+    min-height: 0;
+    padding-top: 7px;
+    padding-bottom: 7px;
+    border-top: 0;
+    background: var(--surface);
+    font-size: 12px;
+    font-weight: 550;
+    color: var(--muted);
+    letter-spacing: .03em;
+    text-transform: uppercase;
+  }
+  .list > .row:first-child { border-top: 0; }
+  .colhead + .list > .row:first-child { border-top: 1px solid var(--line); }
+  .row > span:not(.c-act) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .colhead > span { font: inherit; color: inherit; }
+  .c-pos { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+  .c-num { font-weight: 700; font-size: 17px; font-variant-numeric: tabular-nums; }
+  .c-name { font-weight: 550; }
+  .c-age { font-variant-numeric: tabular-nums; }
+  .c-reason { color: var(--muted); font-size: 14px; }
+  .c-act { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
+  .c-act .btn-sm { padding: 5px 11px; }
+  .c-act .btn-sm + .ib, .c-act .btn-sm + .btn-sm { margin-left: 2px; }
+  .colhead .c-act { visibility: hidden; }
+
+  .waiting .row { grid-template-columns: 40px 60px minmax(0, 1.25fr) 44px minmax(0, .8fr) minmax(0, 1.5fr) 236px; }
+  .serving .row { grid-template-columns: 60px minmax(0, 1.25fr) 44px minmax(0, .8fr) minmax(0, 1.5fr) 236px; }
+  .done .row    { grid-template-columns: 60px minmax(0, 1.25fr) 44px minmax(0, .8fr) minmax(0, 1.5fr) 236px; }
+  .serving .c-pos, .done .c-pos { display: none; }
+  .serving .c-num { color: var(--accent); }
+  .done .list .row > span { color: var(--muted); }
+  .phone { display: none !important; }
+
+  .btn-call { color: var(--accent); }
+  .row.busy { opacity: .4; pointer-events: none; transition: opacity .1s; }
+  .empty { padding: 18px 16px; color: var(--muted); font-size: 15px; }
+  .more-rows { display: block; width: 100%; padding: 12px; border: 0; border-top: 1px solid var(--line); background: var(--surface); color: var(--accent); font: inherit; font-weight: 600; font-size: 15px; cursor: pointer; }
+  .more-rows:hover { text-decoration: underline; }
+
+  details > summary { list-style: none; cursor: pointer; user-select: none; }
+  details > summary::-webkit-details-marker { display: none; }
+  details > summary::before {
+    content: "";
+    width: 7px; height: 7px;
+    margin: 0 4px 0 2px;
+    border: solid var(--muted);
+    border-width: 0 2px 2px 0;
+    transform: translateY(-2px) rotate(-45deg);
+    transition: transform .15s;
+    align-self: center;
+  }
+  details[open] > summary::before { transform: translateY(-3px) rotate(45deg); }
+  details > summary .sec-hint { margin-left: auto; font-size: 13px; color: var(--muted); }
+  details:not([open]) > summary { margin-bottom: 0; }
+
+  /* ---------- popover menu ---------- */
+  .menu {
+    position: fixed;
+    z-index: 40;
+    min-width: 190px;
+    padding: 6px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, .14), 0 2px 6px rgba(0, 0, 0, .06);
+  }
+  .menu button, .menu a {
+    display: block;
+    width: 100%;
+    padding: 9px 12px;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    color: var(--fg);
+    font: inherit;
+    font-size: 15px;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .menu button:hover, .menu a:hover, .menu button:focus-visible, .menu a:focus-visible { background: var(--surface); outline: none; }
+  .menu .danger { color: var(--danger); }
+  .menu hr { margin: 6px 4px; border: 0; border-top: 1px solid var(--line); }
+
+  /* ---------- dialogs ---------- */
+  dialog {
+    width: min(460px, calc(100% - 32px));
+    padding: 24px;
+    border: 0;
+    border-radius: 16px;
+    background: var(--bg);
+    color: var(--fg);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, .25);
+  }
+  dialog::backdrop { background: rgba(10, 14, 18, .45); }
+  dialog h2 { font-size: 19px; margin-bottom: 18px; }
+  dialog p { margin: -8px 0 18px; font-size: 15px; }
+  .grid2 { display: grid; grid-template-columns: 96px 1fr; gap: 0 12px; }
+  .dlg-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+  dialog .field { margin-bottom: 14px; }
+  dialog textarea { min-height: 72px; }
+
+  /* ---------- toast ---------- */
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    z-index: 60;
+    max-width: calc(100% - 32px);
+    padding: 10px 16px;
+    border-radius: 10px;
+    background: var(--fg);
+    color: var(--bg);
+    font-size: 15px;
+    font-weight: 500;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .2);
+    transform: translate(-50%, 12px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .18s, transform .18s;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  .toast.err { background: var(--danger); color: #fff; }
+
+  /* ---------- phone ---------- */
+  @media (max-width: 760px) {
+    .app { padding: 0 16px calc(132px + env(safe-area-inset-bottom)); }
+    .head { position: static; padding-top: 12px; }
+    .top { flex-wrap: wrap; gap: 10px 12px; padding-bottom: 10px; }
+    .top-actions { margin-left: auto; }
+    .top-actions .btn { padding: 7px 12px; }
+    .counts { order: 3; width: 100%; margin: 0; gap: 0; justify-content: space-between; }
+    .counts li { flex-direction: column; align-items: flex-start; gap: 0; font-size: 12px; }
+    .counts li + li { padding-left: 14px; border-left: 1px solid var(--line); }
+    .counts li { flex: 1; }
+    .counts b { font-size: 20px; }
+    .toolbar { padding: 10px 0 0; border-bottom: 0; }
+    .search { width: 100%; margin: 0; }
+
+    .callbar {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      z-index: 30;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 10px 16px calc(12px + env(safe-area-inset-bottom));
+      background: color-mix(in srgb, var(--bg) 94%, transparent);
+      -webkit-backdrop-filter: blur(8px);
+      backdrop-filter: blur(8px);
+      border-top: 1px solid var(--line);
+    }
+    .callbar .opts { order: -1; width: 100%; justify-content: space-between; }
+    #next { flex: 1; min-width: 0; padding: 13px 16px; font-size: 18px; }
+    #next kbd { display: none; }
+    .stepper { height: 52px; }
+    .stepper button { width: 42px; }
+
+    section { margin-top: 22px; }
+    .colhead { display: none; }
+    .table { border: 0; border-radius: 0; overflow: visible; }
+    .list { display: grid; gap: 8px; }
+    .list > .row, .colhead + .list > .row:first-child { border: 1px solid var(--line); }
+    .row, .waiting .row, .serving .row, .done .row {
+      grid-template-columns: auto auto minmax(0, 1fr) auto;
+      grid-template-areas:
+        "num name name pos"
+        "num age country country"
+        "num reason reason reason"
+        "act act act act";
+      gap: 0;
+      padding: 12px 12px 8px 14px;
+      border-radius: var(--radius);
+    }
+    .c-num { grid-area: num; min-width: 44px; margin-right: 12px; align-self: start; font-size: 22px; line-height: 1.15; }
+    .c-name { grid-area: name; }
+    .c-pos { grid-area: pos; padding-left: 8px; font-size: 13px; }
+    .c-pos::before { content: "#"; }
+    .c-age { grid-area: age; color: var(--muted); font-size: 14px; }
+    .c-country { grid-area: country; color: var(--muted); font-size: 14px; }
+    .c-country::before { content: "\00a0\00b7\00a0"; }
+    .c-reason { grid-area: reason; }
+    .no-reason .c-reason { display: none; }
+    .c-act { grid-area: act; justify-content: flex-start; margin: 10px -4px 0 -2px; gap: 6px; }
+    .c-act .btn-sm { padding: 6px 14px; font-size: 15px; }
+    .c-act .ib { width: 40px; height: 36px; }
+    .c-act .push { margin-left: auto; }
+    .desk { display: none !important; }
+    .phone { display: inline-flex !important; }
+    .empty { border: 1px dashed var(--line); border-radius: var(--radius); }
+    .more-rows { border: 1px solid var(--line); border-radius: var(--radius); }
+    .toast { bottom: calc(140px + env(safe-area-inset-bottom)); }
+    .grid2 { grid-template-columns: 84px 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<main id="login" class="login hidden">
+  <form id="loginForm" class="card" autocomplete="on">
+    <h1>Queue admin</h1>
+    <p class="muted">Enter the admin password to continue.</p>
+    <div class="field">
+      <label for="pw">Password</label>
+      <input id="pw" name="password" type="password" autocomplete="current-password" required>
+    </div>
+    <div id="loginErr" class="error" role="alert"></div>
+    <button class="btn btn-primary btn-block" type="submit">Log in</button>
+  </form>
+</main>
+
+<div id="app" class="app hidden">
+  <div class="head">
+    <header class="top">
+      <div class="brand">
+        <h1>Queue</h1>
+        <span id="conn" class="conn" data-s="connecting" role="status">Connecting</span>
+      </div>
+      <ul class="counts" aria-label="Counts">
+        <li><b id="cWaiting">0</b> waiting</li>
+        <li><b><span id="cServing">0</span><span id="cMax" class="of"></span></b> serving</li>
+        <li><b id="cDone">0</b> done</li>
+        <li><b id="cTotal">0</b> total</li>
+      </ul>
+      <div class="top-actions">
+        <button id="addBtn" class="btn" type="button">Add person</button>
+        <button id="menuBtn" class="btn" type="button" aria-haspopup="menu" aria-expanded="false">Menu</button>
+      </div>
+    </header>
+
+    <div class="toolbar">
+      <div class="callbar" role="group" aria-label="Call next">
+        <button id="next" class="btn btn-primary" type="button" aria-keyshortcuts="N">Call next <kbd aria-hidden="true">N</kbd></button>
+        <div class="stepper" role="group" aria-label="How many to call">
+          <button type="button" data-step="-1" aria-label="Call fewer">&minus;</button>
+          <input id="count" type="number" inputmode="numeric" min="1" max="20" value="1" aria-label="Number of people to call">
+          <button type="button" data-step="1" aria-label="Call more">+</button>
+        </div>
+        <div class="opts">
+          <label class="check"><input id="finish" type="checkbox"> Finish current first</label>
+          <label class="limit" title="How many people can be serving and shown on the TV at once">On screen <input id="maxServing" type="number" inputmode="numeric" min="1" max="30" value="20"></label>
+        </div>
+      </div>
+      <div class="search">
+        <span class="icon i-search" aria-hidden="true"></span>
+        <label for="q" class="sr-only">Search by number, name or country</label>
+        <input id="q" type="search" placeholder="Search number, name, country" autocomplete="off" spellcheck="false">
+      </div>
+    </div>
+  </div>
+
+  <section class="serving" aria-labelledby="hServing">
+    <div class="sec-head"><h2 id="hServing">Now serving</h2><span id="nServing" class="n"></span></div>
+    <div class="table">
+      <div class="row colhead" aria-hidden="true"><span class="c-pos"></span><span class="c-num">No.</span><span>Name</span><span>Age</span><span>Country</span><span>Reason</span><span class="c-act"></span></div>
+      <div id="servingList" class="list" role="list"></div>
+    </div>
+  </section>
+
+  <section class="waiting" aria-labelledby="hWaiting">
+    <div class="sec-head"><h2 id="hWaiting">Waiting</h2><span id="nWaiting" class="n"></span></div>
+    <div class="table">
+      <div class="row colhead" aria-hidden="true"><span class="c-pos">#</span><span class="c-num">No.</span><span>Name</span><span>Age</span><span>Country</span><span>Reason</span><span class="c-act"></span></div>
+      <div id="waitingList" class="list" role="list"></div>
+      <button id="waitingMore" class="more-rows hidden" type="button"></button>
+    </div>
+  </section>
+
+  <section class="done">
+    <details id="doneBox">
+      <summary class="sec-head"><h2>Done</h2><span id="nDone" class="n"></span></summary>
+      <div class="table">
+        <div class="row colhead" aria-hidden="true"><span class="c-pos"></span><span class="c-num">No.</span><span>Name</span><span>Age</span><span>Country</span><span>Reason</span><span class="c-act"></span></div>
+        <div id="doneList" class="list" role="list"></div>
+        <button id="doneMore" class="more-rows hidden" type="button"></button>
+      </div>
+    </details>
+  </section>
+</div>
+
+<!-- Row templates: cloned per patient, text filled with textContent. -->
+<template id="tpl-serving">
+  <div class="row" role="listitem"><span class="c-pos"></span><span class="c-num"></span><span class="c-name"></span><span class="c-age"></span><span class="c-country"></span><span class="c-reason"></span><span class="c-act"><button type="button" class="btn btn-sm btn-primary" data-act="done">Done</button><button type="button" class="btn btn-sm" data-act="back">Back to queue</button><button type="button" class="ib i-edit push" data-act="edit" title="Edit" aria-label="Edit"></button></span></div>
+</template>
+<template id="tpl-waiting">
+  <div class="row" role="listitem"><span class="c-pos"></span><span class="c-num"></span><span class="c-name"></span><span class="c-age"></span><span class="c-country"></span><span class="c-reason"></span><span class="c-act"><button type="button" class="btn btn-sm btn-call" data-act="call">Call</button><button type="button" class="ib i-up" data-act="up" title="Move up" aria-label="Move up"></button><button type="button" class="ib i-down" data-act="down" title="Move down" aria-label="Move down"></button><button type="button" class="ib i-top" data-act="top" title="Move to top" aria-label="Move to top"></button><button type="button" class="ib i-edit desk" data-act="edit" title="Edit" aria-label="Edit"></button><button type="button" class="ib i-del danger desk" data-act="del" title="Delete" aria-label="Delete"></button><button type="button" class="ib i-more phone push" data-act="more" title="More" aria-label="More actions" aria-haspopup="menu"></button></span></div>
+</template>
+<template id="tpl-done">
+  <div class="row" role="listitem"><span class="c-pos"></span><span class="c-num"></span><span class="c-name"></span><span class="c-age"></span><span class="c-country"></span><span class="c-reason"></span><span class="c-act"><button type="button" class="btn btn-sm" data-act="back">Re-queue</button><button type="button" class="ib i-del danger push" data-act="del" title="Delete" aria-label="Delete"></button></span></div>
+</template>
+
+<div id="menu" class="menu hidden" role="menu"></div>
+
+<dialog id="pDlg" aria-labelledby="pTitle">
+  <form id="pForm" novalidate>
+    <h2 id="pTitle">Edit</h2>
+    <div class="field">
+      <label for="fName">Name</label>
+      <input id="fName" name="name" maxlength="80" autocomplete="off" required>
+    </div>
+    <div class="grid2">
+      <div class="field">
+        <label for="fAge">Age</label>
+        <input id="fAge" name="age" type="number" inputmode="numeric" min="0" max="130" required>
+      </div>
+      <div class="field">
+        <label for="fCountry">Country</label>
+        <input id="fCountry" name="country" maxlength="60" autocomplete="off" required>
+      </div>
+    </div>
+    <div class="field">
+      <label for="fReason">Reason <span class="muted">(optional)</span></label>
+      <textarea id="fReason" name="reason" maxlength="300" rows="2"></textarea>
+    </div>
+    <div id="fStatusField" class="field">
+      <label for="fStatus">Status</label>
+      <select id="fStatus" name="status">
+        <option value="waiting">Waiting</option>
+        <option value="serving">Serving</option>
+        <option value="done">Done</option>
+      </select>
+    </div>
+    <div id="pErr" class="error" role="alert"></div>
+    <div class="dlg-actions">
+      <button class="btn" type="button" data-close>Cancel</button>
+      <button id="pSave" class="btn btn-primary" type="submit">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="rDlg" aria-labelledby="rTitle">
+  <form id="rForm" novalidate>
+    <h2 id="rTitle">Reset the day?</h2>
+    <p class="muted">This deletes everyone and starts numbers again from 1. It cannot be undone. Export the CSV first if you need a record.</p>
+    <div class="field">
+      <label for="rInput">Type RESET to confirm</label>
+      <input id="rInput" autocomplete="off" autocapitalize="characters" spellcheck="false">
+    </div>
+    <div id="rErr" class="error" role="alert"></div>
+    <div class="dlg-actions">
+      <button class="btn" type="button" data-close>Cancel</button>
+      <button id="rGo" class="btn btn-primary" type="submit" disabled style="background:var(--danger);border-color:var(--danger);color:#fff">Reset day</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var LIMIT = 200; // rows rendered before "Show all"
+  var $ = function (id) { return document.getElementById(id); };
+
+  var ui = {
+    login: $('login'), loginForm: $('loginForm'), pw: $('pw'), loginErr: $('loginErr'),
+    app: $('app'), conn: $('conn'),
+    cWaiting: $('cWaiting'), cServing: $('cServing'), cDone: $('cDone'), cTotal: $('cTotal'),
+    next: $('next'), count: $('count'), finish: $('finish'), q: $('q'),
+    maxServing: $('maxServing'), cMax: $('cMax'),
+    servingList: $('servingList'), waitingList: $('waitingList'), doneList: $('doneList'),
+    nServing: $('nServing'), nWaiting: $('nWaiting'), nDone: $('nDone'),
+    waitingMore: $('waitingMore'), doneMore: $('doneMore'), doneBox: $('doneBox'),
+    menu: $('menu'), menuBtn: $('menuBtn'), toast: $('toast'),
+    pDlg: $('pDlg'), pForm: $('pForm'), pTitle: $('pTitle'), pErr: $('pErr'), pSave: $('pSave'),
+    fStatusField: $('fStatusField'),
+    rDlg: $('rDlg'), rForm: $('rForm'), rInput: $('rInput'), rGo: $('rGo'), rErr: $('rErr')
+  };
+  var tpl = {
+    serving: $('tpl-serving').content.firstElementChild,
+    waiting: $('tpl-waiting').content.firstElementChild,
+    done: $('tpl-done').content.firstElementChild
+  };
+
+  var state = null;      // last payload from the event stream
+  var es = null;         // EventSource
+  var retryTimer = 0;
+  var query = '';
+  var showAll = { waiting: false, done: false };
+  var renderQueued = false;
+  var menuCtx = null;    // {anchor, id}
+  var editing = null;    // patient being edited, or null when adding
+
+  /* ---------------- helpers ---------------- */
+
+  function store(key, val) {
+    try { if (val === undefined) return localStorage.getItem(key); localStorage.setItem(key, val); } catch (e) { return null; }
+  }
+
+  var toastTimer = 0;
+  function toast(msg, isErr) {
+    ui.toast.textContent = msg;
+    ui.toast.className = 'toast show' + (isErr ? ' err' : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { ui.toast.className = 'toast' + (isErr ? ' err' : ''); }, isErr ? 4500 : 2600);
+  }
+  function fail(err) { if (!err.auth) toast(err.message, true); }
+
+  function api(method, url, body) {
+    var opts = { method: method, credentials: 'same-origin', headers: {} };
+    if (body !== undefined) {
+      opts.headers['Content-Type'] = 'application/json';
+      opts.body = JSON.stringify(body);
+    }
+    return fetch(url, opts).then(function (res) {
+      return res.json().catch(function () { return null; }).then(function (data) {
+        if (res.status === 401 && url !== '/api/login') {
+          showLogin();
+          var e = new Error('Please log in again');
+          e.auth = true;
+          throw e;
+        }
+        if (!res.ok) throw new Error((data && data.error) || 'Request failed (' + res.status + ')');
+        return data;
+      });
+    }, function () { throw new Error('Network error. Check the connection.'); });
+  }
+
+  function findPatient(id) {
+    if (!state) return null;
+    var lists = [state.serving, state.waiting, state.done];
+    for (var i = 0; i < lists.length; i++) {
+      for (var j = 0; j < lists[i].length; j++) if (lists[i][j].id === id) return lists[i][j];
+    }
+    return null;
+  }
+
+  /* ---------------- auth & views ---------------- */
+
+  function showLogin() {
+    disconnect();
+    state = null;
+    closeMenu();
+    if (ui.pDlg.open) ui.pDlg.close();
+    if (ui.rDlg.open) ui.rDlg.close();
+    ui.app.classList.add('hidden');
+    ui.login.classList.remove('hidden');
+    ui.pw.value = '';
+    setTimeout(function () { ui.pw.focus(); }, 0);
+  }
+
+  function showApp() {
+    ui.login.classList.add('hidden');
+    ui.app.classList.remove('hidden');
+    ui.loginErr.textContent = '';
+    connect();
+  }
+
+  ui.loginForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var btn = ui.loginForm.querySelector('button');
+    btn.disabled = true;
+    ui.loginErr.textContent = '';
+    api('POST', '/api/login', { password: ui.pw.value })
+      .then(showApp, function (err) {
+        ui.loginErr.textContent = err.message === 'Request failed (401)' ? 'Wrong password' : err.message;
+        ui.pw.select();
+      })
+      .then(function () { btn.disabled = false; });
+  });
+
+  function logout() {
+    api('POST', '/api/logout').catch(function () {}).then(showLogin);
+  }
+
+  /* ---------------- live stream ---------------- */
+
+  function setConn(s) {
+    ui.conn.setAttribute('data-s', s);
+    ui.conn.textContent = s === 'live' ? 'Live' : s === 'down' ? 'Reconnecting' : 'Connecting';
+  }
+
+  function connect() {
+    disconnect();
+    setConn('connecting');
+    es = new EventSource('/api/events');
+    es.addEventListener('state', function (ev) {
+      setConn('live');
+      try { state = JSON.parse(ev.data); } catch (e) { return; }
+      scheduleRender();
+    });
+    es.onopen = function () { setConn('live'); };
+    es.onerror = function () {
+      setConn('down');
+      // A closed stream (e.g. 401) will not retry by itself.
+      var closed = es && es.readyState === 2;
+      api('GET', '/api/me').then(function (me) {
+        if (!me || !me.admin) return showLogin();
+        if (closed && es) { clearTimeout(retryTimer); retryTimer = setTimeout(connect, 2000); }
+      }, function () {
+        if (closed && es) { clearTimeout(retryTimer); retryTimer = setTimeout(connect, 3000); }
+      });
+    };
+  }
+
+  function disconnect() {
+    clearTimeout(retryTimer);
+    if (es) { es.onerror = null; es.close(); es = null; }
+  }
+
+  /* ---------------- rendering ---------------- */
+
+  function scheduleRender() {
+    if (renderQueued) return;
+    renderQueued = true;
+    requestAnimationFrame(function () { renderQueued = false; render(); });
+  }
+
+  function matcher(q) {
+    q = q.trim().toLowerCase().replace(/^#/, '');
+    if (!q) return null;
+    var numeric = /^\d+$/.test(q);
+    return function (p) {
+      if (numeric && String(p.number).indexOf(q) === 0) return true;
+      return p.name.toLowerCase().indexOf(q) !== -1 || p.country.toLowerCase().indexOf(q) !== -1;
+    };
+  }
+
+  function makeRow(p, kind, pos) {
+    var r = tpl[kind].cloneNode(true);
+    var c = r.children;
+    r.setAttribute('data-id', p.id);
+    if (pos) c[0].textContent = pos;
+    c[1].textContent = p.number;
+    c[2].textContent = p.name;
+    c[3].textContent = p.age;
+    c[4].textContent = p.country;
+    if (p.reason) { c[5].textContent = p.reason; c[5].title = p.reason; } else r.className += ' no-reason';
+    return r;
+  }
+
+  // Builds a list in one pass; returns the number of matching items.
+  function fill(listEl, kind, items, match, limit, emptyText) {
+    var frag = document.createDocumentFragment();
+    var total = 0;
+    for (var i = 0; i < items.length; i++) {
+      var p = items[i];
+      if (match && !match(p)) continue;
+      total++;
+      if (total <= limit) frag.appendChild(makeRow(p, kind, kind === 'waiting' ? i + 1 : 0));
+    }
+    if (!total) {
+      var e = document.createElement('div');
+      e.className = 'empty';
+      e.textContent = match ? 'No matches' : emptyText;
+      frag.appendChild(e);
+    }
+    listEl.textContent = '';
+    listEl.appendChild(frag);
+    return total;
+  }
+
+  function moreButton(btn, total, limit, label) {
+    var hidden = total <= limit;
+    btn.classList.toggle('hidden', hidden);
+    if (!hidden) btn.textContent = 'Show all ' + total.toLocaleString() + ' ' + label;
+  }
+
+  function countLabel(el, shown, all) {
+    el.textContent = shown === all ? String(all) : shown + ' of ' + all;
+  }
+
+  function render() {
+    if (!state) return;
+    var c = state.counts;
+    ui.cWaiting.textContent = c.waiting;
+    ui.cServing.textContent = c.serving;
+    var max = state.settings && state.settings.maxServing;
+    ui.cMax.textContent = max ? '\u2009/\u2009' + max : '';
+    if (max && document.activeElement !== ui.maxServing) ui.maxServing.value = max;
+    ui.cDone.textContent = c.done;
+    ui.cTotal.textContent = c.total;
+
+    // Remember keyboard focus inside a list so re-rendering doesn't lose it.
+    var f = document.activeElement, keep = null;
+    if (f && f.getAttribute('data-act') && f.closest) {
+      var fr = f.closest('.row[data-id]');
+      if (fr) keep = { id: fr.getAttribute('data-id'), act: f.getAttribute('data-act') };
+    }
+
+    var match = matcher(query);
+    var n;
+    n = fill(ui.servingList, 'serving', state.serving, match, Infinity, 'No one is being served');
+    countLabel(ui.nServing, n, state.serving.length);
+    if (max && n === state.serving.length) ui.nServing.textContent = n + ' / ' + max;
+
+    var wl = showAll.waiting ? Infinity : LIMIT;
+    n = fill(ui.waitingList, 'waiting', state.waiting, match, wl, 'No one is waiting');
+    countLabel(ui.nWaiting, n, state.waiting.length);
+    moreButton(ui.waitingMore, n, wl, 'waiting');
+
+    if (ui.doneBox.open) {
+      var dl = showAll.done ? Infinity : LIMIT;
+      n = fill(ui.doneList, 'done', state.done, match, dl, 'No one is done yet');
+      countLabel(ui.nDone, n, state.done.length);
+      moreButton(ui.doneMore, n, dl, 'done');
+    } else {
+      ui.doneList.textContent = '';
+      ui.doneMore.classList.add('hidden');
+      ui.nDone.textContent = String(state.done.length);
+    }
+
+    if (keep) {
+      var el = ui.app.querySelector('.row[data-id="' + keep.id + '"] [data-act="' + keep.act + '"]');
+      if (el) el.focus();
+    }
+    if (menuCtx && menuCtx.id && !findPatient(menuCtx.id)) closeMenu();
+  }
+
+  /* ---------------- actions ---------------- */
+
+  function rowEl(id) { return ui.app.querySelector('.row[data-id="' + id + '"]'); }
+
+  function busy(id) {
+    var r = rowEl(id);
+    if (r) r.classList.add('busy');
+  }
+
+  function run(id, promise) {
+    if (id) busy(id);
+    return promise.catch(function (err) { fail(err); render(); });
+  }
+
+  function setStatus(id, status) {
+    return run(id, api('PATCH', '/api/patients/' + id, { status: status }));
+  }
+
+  // Moves are applied locally right away; the next pushed state confirms them.
+  function move(id, to) {
+    var w = state.waiting, i = -1;
+    for (var k = 0; k < w.length; k++) if (w[k].id === id) { i = k; break; }
+    if (i < 0) return;
+    var j = to === 'up' ? i - 1 : to === 'down' ? i + 1 : to === 'top' ? 0 : w.length - 1;
+    if (j < 0 || j >= w.length || j === i) return;
+    var p = w.splice(i, 1)[0];
+    w.splice(j, 0, p);
+    render();
+    api('POST', '/api/patients/' + id + '/move', { to: to }).catch(fail);
+  }
+
+  function remove(p) {
+    if (!confirm('Delete no. ' + p.number + ' (' + p.name + ')?\nThis cannot be undone.')) return;
+    run(p.id, api('DELETE', '/api/patients/' + p.id));
+  }
+
+  function doAction(act, id) {
+    var p = findPatient(id);
+    if (!p) return;
+    switch (act) {
+      case 'call': return setStatus(id, 'serving');
+      case 'done': return setStatus(id, 'done');
+      case 'back': return setStatus(id, 'waiting');
+      case 'up': case 'down': case 'top': case 'bottom': return move(id, act);
+      case 'edit': return openPatient(p);
+      case 'del': return remove(p);
+    }
+  }
+
+  var calling = false;
+  function callNext() {
+    if (calling) return;
+    calling = true;
+    ui.next.disabled = true;
+    var count = clampCount(ui.count.value);
+    api('POST', '/api/next', { count: count, finishServing: ui.finish.checked })
+      .then(function (r) {
+        var nums = (r && r.called || []).map(function (p) { return p.number; });
+        toast(nums.length ? 'Called no. ' + nums.join(', ') : 'No one is waiting');
+      }, fail)
+      .then(function () { calling = false; ui.next.disabled = false; });
+  }
+
+  function clampCount(v) {
+    v = parseInt(v, 10);
+    return isNaN(v) ? 1 : Math.min(20, Math.max(1, v));
+  }
+  function setCount(v) {
+    v = clampCount(v);
+    ui.count.value = v;
+    ui.next.firstChild.nodeValue = v > 1 ? 'Call next ' + v + ' ' : 'Call next ';
+    store('admin.count', String(v));
+  }
+
+  /* ---------------- menus ---------------- */
+
+  var ROW_MENU = [
+    { act: 'edit', label: 'Edit' },
+    { act: 'bottom', label: 'Move to bottom' },
+    '-',
+    { act: 'del', label: 'Delete', danger: true }
+  ];
+  var MAIN_MENU = [
+    { href: '/display', label: 'Open display', blank: true },
+    { href: '/poster', label: 'QR poster', blank: true },
+    { href: '/api/export.csv', label: 'Export CSV', download: true },
+    '-',
+    { act: 'reset', label: 'Reset day…', danger: true },
+    { act: 'logout', label: 'Log out' }
+  ];
+
+  function openMenu(anchor, items, id) {
+    closeMenu();
+    var m = ui.menu;
+    items.forEach(function (it) {
+      var el;
+      if (it === '-') { el = document.createElement('hr'); m.appendChild(el); return; }
+      el = document.createElement(it.href ? 'a' : 'button');
+      if (it.href) {
+        el.href = it.href;
+        if (it.blank) { el.target = '_blank'; el.rel = 'noopener'; }
+        if (it.download) el.setAttribute('download', '');
+      } else {
+        el.type = 'button';
+        el.setAttribute('data-act', it.act);
+      }
+      el.setAttribute('role', 'menuitem');
+      if (it.danger) el.className = 'danger';
+      el.textContent = it.label;
+      m.appendChild(el);
+    });
+    m.classList.remove('hidden');
+    var r = anchor.getBoundingClientRect();
+    var w = m.offsetWidth, h = m.offsetHeight;
+    var left = Math.max(8, Math.min(r.right - w, window.innerWidth - w - 8));
+    var top = r.bottom + 6;
+    if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 6);
+    m.style.left = left + 'px';
+    m.style.top = top + 'px';
+    anchor.setAttribute('aria-expanded', 'true');
+    menuCtx = { anchor: anchor, id: id };
+    m.firstElementChild.focus();
+  }
+
+  function closeMenu(refocus) {
+    if (!menuCtx) return;
+    var a = menuCtx.anchor;
+    menuCtx = null;
+    ui.menu.classList.add('hidden');
+    ui.menu.textContent = '';
+    a.setAttribute('aria-expanded', 'false');
+    if (refocus && document.body.contains(a)) a.focus();
+  }
+
+  ui.menu.addEventListener('click', function (e) {
+    var t = e.target.closest('a, button');
+    if (!t) return;
+    var ctx = menuCtx, act = t.getAttribute('data-act');
+    closeMenu();
+    if (!act) return; // links navigate by themselves
+    if (act === 'reset') return openReset();
+    if (act === 'logout') return logout();
+    if (ctx && ctx.id) doAction(act, ctx.id);
+  });
+
+  ui.menu.addEventListener('keydown', function (e) {
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    e.preventDefault();
+    var items = Array.prototype.slice.call(ui.menu.querySelectorAll('a, button'));
+    var i = items.indexOf(document.activeElement) + (e.key === 'ArrowDown' ? 1 : -1);
+    items[(i + items.length) % items.length].focus();
+  });
+
+  document.addEventListener('pointerdown', function (e) {
+    if (menuCtx && !ui.menu.contains(e.target) && e.target !== menuCtx.anchor) closeMenu();
+  });
+  window.addEventListener('resize', function () { closeMenu(); });
+  window.addEventListener('scroll', function () { closeMenu(); }, { passive: true });
+
+  ui.menuBtn.addEventListener('click', function () {
+    if (menuCtx && menuCtx.anchor === ui.menuBtn) return closeMenu();
+    openMenu(ui.menuBtn, MAIN_MENU, null);
+  });
+
+  /* ---------------- list clicks (one delegated listener) ---------------- */
+
+  ui.app.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-act]');
+    if (!b) return;
+    var r = b.closest('.row[data-id]');
+    if (!r) return;
+    var id = Number(r.getAttribute('data-id'));
+    var act = b.getAttribute('data-act');
+    if (act === 'more') {
+      if (menuCtx && menuCtx.anchor === b) return closeMenu();
+      return openMenu(b, ROW_MENU, id);
+    }
+    doAction(act, id);
+  });
+
+  ui.waitingMore.addEventListener('click', function () { showAll.waiting = true; render(); });
+  ui.doneMore.addEventListener('click', function () { showAll.done = true; render(); });
+  ui.doneBox.addEventListener('toggle', function () {
+    store('admin.doneOpen', ui.doneBox.open ? '1' : '0');
+    render();
+  });
+
+  /* ---------------- toolbar ---------------- */
+
+  ui.next.addEventListener('click', callNext);
+  ui.app.querySelector('.stepper').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-step]');
+    if (b) setCount(clampCount(ui.count.value) + Number(b.getAttribute('data-step')));
+  });
+  ui.count.addEventListener('change', function () { setCount(ui.count.value); });
+  ui.maxServing.addEventListener('change', function () {
+    var v = parseInt(ui.maxServing.value, 10);
+    var cur = state && state.settings ? state.settings.maxServing : null;
+    if (isNaN(v)) { if (cur) ui.maxServing.value = cur; return; }
+    v = Math.min(30, Math.max(1, v));
+    ui.maxServing.value = v;
+    if (v === cur) return;
+    api('PUT', '/api/settings', { maxServing: v }).then(function (r) {
+      toast('Screen limit set to ' + (r && r.maxServing || v));
+    }, function (err) {
+      fail(err);
+      if (cur) ui.maxServing.value = cur;
+    });
+  });
+  ui.maxServing.addEventListener('keydown', function (e) { if (e.key === 'Enter') ui.maxServing.blur(); });
+  ui.finish.addEventListener('change', function () { store('admin.finish', ui.finish.checked ? '1' : '0'); });
+
+  ui.q.addEventListener('input', function () { query = ui.q.value; scheduleRender(); });
+  ui.q.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && ui.q.value) { e.stopPropagation(); ui.q.value = ''; query = ''; scheduleRender(); }
+  });
+
+  function isTyping(t) {
+    if (!t || !t.tagName) return false;
+    if (t.isContentEditable || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT') return true;
+    return t.tagName === 'INPUT' && !/^(checkbox|radio|button|submit|reset)$/i.test(t.type);
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && menuCtx) return closeMenu(true);
+    if (ui.app.classList.contains('hidden') || ui.pDlg.open || ui.rDlg.open) return;
+    if (e.ctrlKey || e.metaKey || e.altKey || e.repeat || isTyping(e.target)) return;
+    if (e.key === 'n' || e.key === 'N') { e.preventDefault(); callNext(); }
+    else if (e.key === '/') { e.preventDefault(); ui.q.focus(); ui.q.select(); }
+  });
+
+  /* ---------------- add / edit dialog ---------------- */
+
+  var F = ui.pForm.elements;
+
+  function openPatient(p) {
+    editing = p || null;
+    ui.pErr.textContent = '';
+    ui.pTitle.textContent = p ? 'Edit no. ' + p.number : 'Add person';
+    ui.pSave.textContent = p ? 'Save' : 'Add to queue';
+    F.name.value = p ? p.name : '';
+    F.age.value = p ? p.age : '';
+    F.country.value = p ? p.country : '';
+    F.reason.value = p && p.reason ? p.reason : '';
+    F.status.value = p ? p.status : 'waiting';
+    ui.fStatusField.classList.toggle('hidden', !p);
+    ui.pDlg.showModal();
+    F.name.focus();
+  }
+
+  ui.pForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var body = {
+      name: F.name.value.trim(),
+      age: F.age.value.trim(),
+      country: F.country.value.trim(),
+      reason: F.reason.value.trim()
+    };
+    if (!body.name) return formError('Name is required', F.name);
+    if (body.age === '' || !/^\d+$/.test(body.age) || +body.age > 130) return formError('Age must be a whole number from 0 to 130', F.age);
+    if (!body.country) return formError('Country is required', F.country);
+    body.age = Number(body.age);
+
+    var req;
+    if (editing) {
+      // Only send status when it changes: re-sending "waiting" would move them to the front.
+      if (F.status.value !== editing.status) body.status = F.status.value;
+      req = api('PATCH', '/api/patients/' + editing.id, body);
+    } else {
+      req = api('POST', '/api/patients', body);
+    }
+    ui.pSave.disabled = true;
+    req.then(function (p) {
+      ui.pDlg.close();
+      toast(editing ? 'Saved no. ' + p.number : 'Added as no. ' + p.number);
+    }, function (err) {
+      if (!err.auth) ui.pErr.textContent = err.message;
+    }).then(function () { ui.pSave.disabled = false; });
+  });
+
+  function formError(msg, field) {
+    ui.pErr.textContent = msg;
+    field.focus();
+  }
+
+  $('addBtn').addEventListener('click', function () { openPatient(null); });
+
+  /* ---------------- reset dialog ---------------- */
+
+  function openReset() {
+    ui.rInput.value = '';
+    ui.rErr.textContent = '';
+    ui.rGo.disabled = true;
+    ui.rDlg.showModal();
+    ui.rInput.focus();
+  }
+  ui.rInput.addEventListener('input', function () { ui.rGo.disabled = ui.rInput.value.trim() !== 'RESET'; });
+  ui.rForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (ui.rInput.value.trim() !== 'RESET') return;
+    ui.rGo.disabled = true;
+    api('POST', '/api/reset', { confirm: 'RESET' }).then(function () {
+      ui.rDlg.close();
+      toast('Day reset. Numbers start from 1.');
+    }, function (err) {
+      ui.rGo.disabled = false;
+      if (!err.auth) ui.rErr.textContent = err.message;
+    });
+  });
+
+  [ui.pDlg, ui.rDlg].forEach(function (d) {
+    d.addEventListener('click', function (e) {
+      if (e.target.hasAttribute('data-close')) return d.close();
+      if (e.target !== d) return;
+      var r = d.getBoundingClientRect(); // clicks on the backdrop target the dialog itself
+      if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) d.close();
+    });
+  });
+
+  /* ---------------- boot ---------------- */
+
+  setCount(store('admin.count') || 1);
+  ui.finish.checked = store('admin.finish') === '1';
+  ui.doneBox.open = store('admin.doneOpen') === '1';
+
+  api('GET', '/api/me').then(function (me) {
+    if (me && me.admin) showApp(); else showLogin();
+  }, function (err) {
+    showLogin();
+    fail(err);
+  });
+})();
+</script>
+</body>
+</html>
