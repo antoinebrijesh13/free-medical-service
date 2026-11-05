@@ -1,0 +1,19 @@
+{
+  "name": "queue",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Minimal patient queue for a one-day free medical camp",
+  "main": "server.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "load-test": "node scripts/load-test.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.0.0",
+    "express": "^4.21.0",
+    "qrcode": "^1.5.0"
+  }
+}
